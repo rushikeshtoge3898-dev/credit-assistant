@@ -65,7 +65,11 @@ from dependencies import get_current_user
 
 
 # Auto-create all database tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    # Will retry on application startup if database was connecting
+    pass
 
 
 # Create FastAPI application
@@ -74,6 +78,16 @@ app = FastAPI(
     description="AI-Powered Credit Health Management Platform for CIBIL / India Ecosystem",
     version="2.0.0",
 )
+
+
+@app.on_event("startup")
+def on_startup():
+    """Ensure database tables exist on application startup."""
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Database initialization warning on startup: {e}")
+
 
 # Enable CORS for frontend integration
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "").strip()
@@ -91,14 +105,22 @@ else:
     ]
     if frontend_url:
         origins.append(frontend_url)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins if origins else ["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if "*" in origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=".*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins if origins else ["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Standardized API Router with /api prefix
 api_router = APIRouter(prefix="/api")
@@ -942,12 +964,12 @@ def seed_sample_cibil_data(
         db.add_all(sample_accounts)
         db.commit()
 
-    # Add sample score history if < 3
+    # Add sample score history if none exist (idempotent seeding)
     existing_history = db.query(CreditScoreHistory).filter(
         CreditScoreHistory.user_id == current_user.id
     ).count()
 
-    if existing_history < 3:
+    if existing_history == 0:
         sample_history = [
             CreditScoreHistory(user_id=current_user.id, credit_score=685, recorded_at=now - timedelta(days=90)),
             CreditScoreHistory(user_id=current_user.id, credit_score=705, recorded_at=now - timedelta(days=60)),

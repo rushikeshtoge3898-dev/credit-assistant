@@ -1,4 +1,4 @@
-﻿# Credit Assistant Backend Dependencies
+# Credit Assistant Backend Dependencies
 # FastAPI & Server
 fastapi==0.141.1
 uvicorn==0.52.4
@@ -8,6 +8,7 @@ anyio==4.15.1
 # Database & ORM
 SQLAlchemy==2.0.52
 greenlet==3.5.5
+psycopg2-binary>=2.9.9
 
 # Validation & Settings
 pydantic==2.13.5

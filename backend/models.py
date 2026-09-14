@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
 from datetime import datetime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
+from sqlalchemy.orm import relationship
 
 from database import Base
 
@@ -38,6 +39,14 @@ class User(Base):
         default=datetime.utcnow
     )
 
+    # Relationships
+    credit_profile = relationship("CreditProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    score_history = relationship("CreditScoreHistory", back_populates="user", cascade="all, delete-orphan")
+    credit_accounts = relationship("CreditAccount", back_populates="user", cascade="all, delete-orphan")
+    payment_records = relationship("PaymentRecord", back_populates="user", cascade="all, delete-orphan")
+    credit_goals = relationship("CreditGoal", back_populates="user", cascade="all, delete-orphan")
+    recommendations = relationship("Recommendation", back_populates="user", cascade="all, delete-orphan")
+
 
 # ---------------- CREDIT PROFILE MODEL ----------------
 
@@ -52,7 +61,7 @@ class CreditProfile(Base):
 
     user_id = Column(
         Integer,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         unique=True
     )
@@ -108,6 +117,9 @@ class CreditProfile(Base):
         onupdate=datetime.utcnow
     )
 
+    # Relationships
+    user = relationship("User", back_populates="credit_profile")
+
 
 # ---------------- CREDIT SCORE HISTORY MODEL ----------------
 
@@ -122,7 +134,7 @@ class CreditScoreHistory(Base):
 
     user_id = Column(
         Integer,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -135,6 +147,9 @@ class CreditScoreHistory(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    # Relationships
+    user = relationship("User", back_populates="score_history")
 
 
 # ---------------- CREDIT ACCOUNT MODEL ----------------
@@ -150,7 +165,7 @@ class CreditAccount(Base):
 
     user_id = Column(
         Integer,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -209,6 +224,10 @@ class CreditAccount(Base):
         default=datetime.utcnow
     )
 
+    # Relationships
+    user = relationship("User", back_populates="credit_accounts")
+    payment_records = relationship("PaymentRecord", back_populates="credit_account")
+
 
 
 # ---------------- PAYMENT RECORD MODEL ----------------
@@ -224,13 +243,13 @@ class PaymentRecord(Base):
 
     user_id = Column(
         Integer,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
 
     account_id = Column(
         Integer,
-        ForeignKey("credit_accounts.id"),
+        ForeignKey("credit_accounts.id", ondelete="SET NULL"),
         nullable=True
     )
 
@@ -254,6 +273,10 @@ class PaymentRecord(Base):
         default=datetime.utcnow
     )
 
+    # Relationships
+    user = relationship("User", back_populates="payment_records")
+    credit_account = relationship("CreditAccount", back_populates="payment_records")
+
 
 # ---------------- CREDIT GOAL MODEL ----------------
 
@@ -268,7 +291,7 @@ class CreditGoal(Base):
 
     user_id = Column(
         Integer,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -297,6 +320,9 @@ class CreditGoal(Base):
         default=datetime.utcnow
     )
 
+    # Relationships
+    user = relationship("User", back_populates="credit_goals")
+
 
 # ---------------- RECOMMENDATION MODEL ----------------
 
@@ -311,7 +337,7 @@ class Recommendation(Base):
 
     user_id = Column(
         Integer,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -344,4 +370,8 @@ class Recommendation(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    # Relationships
+    user = relationship("User", back_populates="recommendations")
+
 
