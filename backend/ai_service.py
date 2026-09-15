@@ -1,6 +1,7 @@
 import os
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from google import genai
 
@@ -137,13 +138,14 @@ def generate_ai_chat_response(
 
     context = get_cibil_context(profile, accounts)
 
-    # -----------------------------------------------------
+        # -----------------------------------------------------
     # CURRENT DATE
     # -----------------------------------------------------
 
-    current_date = datetime.now().strftime("%A, %d %B %Y")
-    current_time = datetime.now().strftime("%I:%M %p")
+    india_now = datetime.now(ZoneInfo("Asia/Kolkata"))
 
+    current_date = india_now.strftime("%A, %d %B %Y")
+    current_time = india_now.strftime("%I:%M %p")
     # -----------------------------------------------------
     # HANDLE DATE QUESTIONS DIRECTLY
     # -----------------------------------------------------
