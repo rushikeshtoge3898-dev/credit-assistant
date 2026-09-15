@@ -645,10 +645,10 @@ def generate_ai_credit_analysis(
     )
 
     disclaimer = (
-        "Educational estimate based on the information entered "
-        "into Credit Assistant. It is not an official credit "
-        "bureau report or score."
+        "Credit analysis is based on the information available "
+        "in Credit Assistant and is not an official credit bureau report."
     )
+
 
     prompt = f"""
 You are an educational credit-risk assistant for India.
@@ -809,3 +809,4 @@ def rule_based_analysis(
 
         "educational_disclaimer": disclaimer
     }
+
