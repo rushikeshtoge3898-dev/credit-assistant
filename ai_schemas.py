@@ -10,6 +10,7 @@ class AIChatMessage(BaseModel):
 class AIChatRequest(BaseModel):
     message: str
     history: Optional[List[AIChatMessage]] = None
+    language: Optional[str] = "en"
 
 
 class AIChatResponse(BaseModel):

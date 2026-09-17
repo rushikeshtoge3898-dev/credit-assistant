@@ -1,21 +1,42 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import api, { authAPI } from "../services/api";
+import { guestData } from "../services/guestData";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const [isGuest, setIsGuest] = useState(() => {
+    return localStorage.getItem("isGuest") === "true";
+  });
+
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
   });
+
   const [token, setToken] = useState(() => localStorage.getItem("token") || null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function verifyUser() {
+      // If currently in guest mode, skip server token verification
+      if (isGuest) {
+        if (!user || !user.isGuest) {
+          const guestUser = {
+            id: "guest",
+            name: "Guest User",
+            email: "guest@creditassistant.local",
+            isGuest: true,
+          };
+          setUser(guestUser);
+          localStorage.setItem("user", JSON.stringify(guestUser));
+        }
+        setLoading(false);
+        return;
+      }
+
       if (token) {
         try {
-          // Standardized endpoint: /api/auth/me with backward compatible fallback to /users/me
           let userData;
           try {
             userData = await authAPI.getMe();
@@ -33,15 +54,16 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
     verifyUser();
-  }, [token]);
+  }, [token, isGuest]);
 
   const login = async (email, password) => {
-    // Standardized endpoint: /api/auth/login
+    setIsGuest(false);
+    localStorage.removeItem("isGuest");
+
     let data;
     try {
       data = await authAPI.login(email, password);
     } catch (err) {
-      // Fallback to legacy endpoint if /api/auth/login was not reachable
       if (err.response?.status === 404) {
         const params = new URLSearchParams();
         params.append("username", email);
@@ -64,7 +86,9 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (name, email, password) => {
-    // Standardized endpoint: /api/auth/register
+    setIsGuest(false);
+    localStorage.removeItem("isGuest");
+
     try {
       await authAPI.register(name, email, password);
     } catch (err) {
@@ -74,19 +98,73 @@ export function AuthProvider({ children }) {
         throw err;
       }
     }
-    // After successful registration, log in automatically
     return await login(email, password);
   };
 
+  /**
+   * Enter Guest Mode - zero backend account or token generated.
+   * Completely isolated and uses local demo datasets.
+   */
+  const loginAsGuest = () => {
+    const guestUser = {
+      id: "guest",
+      name: "Guest User",
+      email: "guest@creditassistant.local",
+      isGuest: true,
+    };
+    setToken(null);
+    setUser(guestUser);
+    setIsGuest(true);
+    localStorage.removeItem("token");
+    localStorage.setItem("isGuest", "true");
+    localStorage.setItem("user", JSON.stringify(guestUser));
+    return guestUser;
+  };
+
+  /**
+   * Set user authenticated via Firebase (Google or Phone Auth)
+   */
+  const loginWithFirebaseUser = (fbUser) => {
+    setIsGuest(false);
+    localStorage.removeItem("isGuest");
+
+    const sessionUser = {
+      id: fbUser.uid || Date.now(),
+      name: fbUser.displayName || fbUser.name || "Authenticated Member",
+      email: fbUser.email || (fbUser.phoneNumber ? `${fbUser.phoneNumber}@phone.auth` : "member@creditassistant.local"),
+      isFirebase: true,
+    };
+
+    // Store session
+    setUser(sessionUser);
+    localStorage.setItem("user", JSON.stringify(sessionUser));
+    return sessionUser;
+  };
+
   const logout = () => {
+    setIsGuest(false);
     setToken(null);
     setUser(null);
+    localStorage.removeItem("isGuest");
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    guestData.resetGuestData();
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isGuest,
+        loading,
+        login,
+        register,
+        loginAsGuest,
+        loginWithFirebaseUser,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

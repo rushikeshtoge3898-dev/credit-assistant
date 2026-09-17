@@ -1,4 +1,11 @@
 import os
+import sys
+
+# Ensure backend directory is in sys.path when imported from repo root (e.g. Vercel)
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 from fastapi import FastAPI, APIRouter, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
@@ -65,7 +72,11 @@ from dependencies import get_current_user
 
 
 # Auto-create all database tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    # Will retry on application startup if database was connecting
+    pass
 
 
 # Create FastAPI application
@@ -74,6 +85,16 @@ app = FastAPI(
     description="AI-Powered Credit Health Management Platform for CIBIL / India Ecosystem",
     version="2.0.0",
 )
+
+
+@app.on_event("startup")
+def on_startup():
+    """Ensure database tables exist on application startup."""
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Database initialization warning on startup: {e}")
+
 
 # Enable CORS for frontend integration
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "").strip()
@@ -91,14 +112,22 @@ else:
     ]
     if frontend_url:
         origins.append(frontend_url)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins if origins else ["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if "*" in origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=".*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins if origins else ["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Standardized API Router with /api prefix
 api_router = APIRouter(prefix="/api")
@@ -285,7 +314,7 @@ def update_credit_profile(
     if not profile:
         profile = CreditProfile(
             user_id=current_user.id,
-            credit_score=profile_update.credit_score if profile_update.credit_score is not None else 700,
+            credit_score=profile_update.credit_score,
             monthly_income=profile_update.monthly_income if profile_update.monthly_income is not None else 0.0,
             total_debt=profile_update.total_debt if profile_update.total_debt is not None else 0.0,
             credit_limit=profile_update.credit_limit if profile_update.credit_limit is not None else 0.0,
@@ -834,7 +863,24 @@ def ai_chat(
         user_message=req.message,
         profile=profile,
         accounts=accounts,
-        chat_history=req.history
+        chat_history=req.history,
+        language=req.language or "en"
+    )
+    return result
+
+
+@api_router.post("/ai/guest-chat", response_model=AIChatResponse)
+@app.post("/ai/guest-chat", response_model=AIChatResponse)
+def ai_guest_chat(
+    req: AIChatRequest
+):
+    # Guest chat operates with demo data in memory without touching user database
+    result = generate_ai_chat_response(
+        user_message=req.message,
+        profile=None,
+        accounts=None,
+        chat_history=req.history,
+        language=req.language or "en"
     )
     return result
 
@@ -942,12 +988,12 @@ def seed_sample_cibil_data(
         db.add_all(sample_accounts)
         db.commit()
 
-    # Add sample score history if < 3
+    # Add sample score history if none exist (idempotent seeding)
     existing_history = db.query(CreditScoreHistory).filter(
         CreditScoreHistory.user_id == current_user.id
     ).count()
 
-    if existing_history < 3:
+    if existing_history == 0:
         sample_history = [
             CreditScoreHistory(user_id=current_user.id, credit_score=685, recorded_at=now - timedelta(days=90)),
             CreditScoreHistory(user_id=current_user.id, credit_score=705, recorded_at=now - timedelta(days=60)),

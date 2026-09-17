@@ -18,7 +18,6 @@ import {
   Database,
   Calendar,
   Clock,
-  Info,
   ArrowUp,
   ArrowDown,
   Layers,
@@ -251,26 +250,13 @@ export default function Dashboard() {
     );
 
   return (
-    <div className="space-y-8">
-      {/* Educational Estimate Disclaimer Banner */}
-      <div className="bg-indigo-950/40 border border-indigo-500/20 rounded-2xl p-3.5 sm:px-5 flex items-center justify-between gap-3 text-xs text-indigo-300 shadow-lg">
-        <div className="flex items-center gap-2.5">
-          <Info className="w-4 h-4 text-indigo-400 shrink-0" />
-          <span>
-            <strong className="font-semibold text-white">Educational Credit Estimate:</strong>{" "}
-            This score simulation and credit analysis model follows Indian TransUnion CIBIL standards (300–900). It is an educational projection, not an official credit bureau pull.
-          </span>
-        </div>
-        <span className="hidden md:inline-block shrink-0 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
-          Educational Mode
-        </span>
-      </div>
+    <div className="w-full max-w-full space-y-6 sm:space-y-8 overflow-x-hidden">
 
       {/* Welcome & Header Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800/90 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
         <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 lg:gap-6 relative z-10">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-1.5">
@@ -295,7 +281,7 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
             <button
               onClick={handleSeedData}
               disabled={seeding}
@@ -354,7 +340,7 @@ export default function Dashboard() {
       )}
 
       {/* Top 6 Key Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Card 1: CIBIL Score & Snapshot Change */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
           <div>
@@ -486,7 +472,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Grid: Gauge & Utilization Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 gap-6">
         {/* Left Column: CIBIL Score Gauge */}
         <div className="lg:col-span-5 flex flex-col">
           <CibilScoreGauge score={score} />

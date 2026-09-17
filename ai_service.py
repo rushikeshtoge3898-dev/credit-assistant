@@ -1,332 +1,972 @@
 import os
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+
+client = None
 
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        print(f"Warning: Failed to initialize Gemini: {e}")
 
+
+# =========================================================
+# CREDIT PROFILE CONTEXT
+# =========================================================
 
 def get_cibil_context(profile, accounts=None):
     if not profile:
         return "No credit profile available yet."
 
     utilization = 0.0
-    if profile.credit_limit > 0:
-        utilization = round((profile.credit_card_balance / profile.credit_limit) * 100, 2)
+
+    if profile.credit_limit and profile.credit_limit > 0:
+        utilization = round(
+            (profile.credit_card_balance / profile.credit_limit) * 100,
+            2
+        )
 
     dti = 0.0
-    if profile.monthly_income > 0:
-        dti = round((profile.total_debt / (profile.monthly_income * 12)) * 100, 2)
+
+    if profile.monthly_income and profile.monthly_income > 0:
+        dti = round(
+            (profile.total_debt / (profile.monthly_income * 12)) * 100,
+            2
+        )
 
     accounts_str = "None logged"
+
     if accounts:
         accounts_list = [
-            f"- {acc.account_name} ({acc.bank_name}, Type: {acc.account_type}): Balance ₹{acc.current_balance:,.2f}, Limit/Principal ₹{acc.credit_limit:,.2f}, EMI ₹{acc.monthly_emi:,.2f}, Status: {acc.payment_status}"
+            f"- {acc.account_name} ({acc.bank_name}, "
+            f"Type: {acc.account_type}): "
+            f"Balance ₹{acc.current_balance:,.2f}, "
+            f"Limit/Principal ₹{acc.credit_limit:,.2f}, "
+            f"EMI ₹{acc.monthly_emi:,.2f}, "
+            f"Status: {acc.payment_status}"
             for acc in accounts
         ]
+
         accounts_str = "\n".join(accounts_list)
 
     return f"""
-Current User Credit & Financial Profile (India / CIBIL context):
-- CIBIL Credit Score: {profile.credit_score if profile.credit_score else 'Not generated yet (New to credit)'} (Scale: 300-900)
+Current User Credit & Financial Profile
+
+Country: India
+Credit context: CIBIL-oriented educational analysis
+
+- Credit Score: {profile.credit_score if profile.credit_score else 'Not available'}
 - Monthly Income: ₹{profile.monthly_income:,.2f}
 - Total Debt: ₹{profile.total_debt:,.2f}
 - Total Credit Card Limit: ₹{profile.credit_limit:,.2f}
 - Outstanding Credit Card Balance: ₹{profile.credit_card_balance:,.2f}
-- Credit Utilization: {utilization}% (Ideal CIBIL recommendation is <= 30%)
-- Debt-to-Income (DTI): {dti}%
+- Credit Utilization: {utilization}%
+- Debt-to-Income Ratio: {dti}%
 - Active Loans: {profile.active_loans}
 - Missed / Overdue Payments: {profile.missed_payments}
-- User Financial Goal: {profile.financial_goal or 'Improve overall credit profile'}
-- Active Accounts:
+- Financial Goal: {profile.financial_goal or 'Improve overall credit profile'}
+
+Active Accounts:
 {accounts_str}
 """
 
 
-def generate_ai_chat_response(user_message: str, profile, accounts=None, chat_history=None) -> dict:
+# =========================================================
+# GEMINI API
+# =========================================================
+
+def call_gemini(prompt):
+    if not client:
+        return None
+
+    try:
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt
+        )
+
+        if response and response.text:
+            return response.text.strip()
+
+    except Exception as e:
+        print(f"Gemini API error: {e}")
+
+    return None
+
+
+# =========================================================
+# JSON EXTRACTION
+# =========================================================
+
+def extract_json(text):
+    if not text:
+        return None
+
+    clean_text = text.strip()
+
+    if clean_text.startswith("```"):
+        clean_text = clean_text.replace("```json", "")
+        clean_text = clean_text.replace("```", "")
+        clean_text = clean_text.strip()
+
+    try:
+        return json.loads(clean_text)
+
+    except json.JSONDecodeError:
+        return None
+
+
+# =========================================================
+# AI CHATBOT
+# =========================================================
+
+def generate_ai_chat_response(
+    user_message: str,
+    profile,
+    accounts=None,
+    chat_history=None,
+    language: str = "en"
+) -> dict:
+
     context = get_cibil_context(profile, accounts)
-    
-    system_instruction = f"""
-You are "CreditGenius", an expert AI Credit & Financial Assistant specialized in Indian personal finance and CIBIL / Experian / CRIF credit scoring (range 300 to 900).
-Always be encouraging, realistic, accurate, and actionable. Format money in Indian Rupees (₹).
-Use bullet points and bold highlights for clarity.
 
-Rules:
-1. Ground advice on CIBIL criteria:
-   - Payment History (35% impact) - Never miss an EMI / credit card due date.
-   - Credit Utilization Ratio (CUR) (30% impact) - Keep below 30% of total limit.
-   - Credit Mix (10-15% impact) - Healthy mix of secured (home/auto) and unsecured (credit card/personal) loans.
-   - Credit Age & Inquiries (20% impact) - Don't apply for multiple credit cards/loans at once to prevent hard inquiries (CIBIL dips).
-2. Keep replies concise, actionable, and formatted nicely in clean Markdown.
-3. Provide 2-3 short follow-up suggested question chips relevant to the response.
+    # -----------------------------------------------------
+    # CURRENT DATE
+    # -----------------------------------------------------
 
-User Profile:
-{context}
+    india_now = datetime.now(ZoneInfo("Asia/Kolkata"))
+
+    current_date = india_now.strftime("%A, %d %B %Y")
+    current_time = india_now.strftime("%I:%M %p")
+
+    # -----------------------------------------------------
+    # HANDLE DATE QUESTIONS DIRECTLY (Multilingual)
+    # -----------------------------------------------------
+
+    lowered_message = user_message.lower().strip()
+    lang = (language or "en").lower()
+
+    date_questions_en = [
+        "today's date",
+        "todays date",
+        "current date",
+        "what date is it",
+        "what is the date today",
+        "what's the date today",
+        "today date"
+    ]
+    date_questions_mr = [
+        "आजची तारीख",
+        "आजची तारीख काय आहे",
+        "तारीख काय आहे",
+        "आज किती तारीख आहे",
+        "आजचा दिनांक"
+    ]
+    date_questions_hi = [
+        "आज क्या तारीख है",
+        "आज की तारीख",
+        "तारीख क्या है",
+        "आज कितनी तारीख है",
+        "आज का दिनांक"
+    ]
+
+    is_mr_date = any(q in lowered_message for q in date_questions_mr)
+    is_hi_date = any(q in lowered_message for q in date_questions_hi)
+    is_en_date = any(q in lowered_message for q in date_questions_en)
+
+    if is_mr_date or (lang == "mr" and is_en_date):
+        return {
+            "response": f"आजची तारीख **{current_date}** आहे.",
+            "suggested_actions": [
+                "CIBIL स्कोर कसा सुधारावा?",
+                "क्रेडिट युटिलायझेशन काय आहे?",
+                "कर्ज व्यवस्थापन कसे करावे?"
+            ]
+        }
+    elif is_hi_date or (lang == "hi" and is_en_date):
+        return {
+            "response": f"आज की तारीख **{current_date}** है।",
+            "suggested_actions": [
+                "सिबिल स्कोर कैसे सुधारें?",
+                "क्रेडिट यूटिलाइज़ेशन क्या है?",
+                "ऋण का प्रबंधन कैसे करें?"
+            ]
+        }
+    elif is_en_date:
+        return {
+            "response": f"Today is **{current_date}**.",
+            "suggested_actions": [
+                "What is CIBIL?",
+                "How can I improve my credit score?",
+                "What is credit utilization?"
+            ]
+        }
+
+    # -----------------------------------------------------
+    # CONVERSATION HISTORY
+    # -----------------------------------------------------
+
+    history_text = ""
+
+    if chat_history:
+        for message in chat_history[-8:]:
+            history_text += (
+                f"{message.role}: {message.content}\n"
+            )
+
+    # -----------------------------------------------------
+    # LANGUAGE INSTRUCTIONS FOR GEMINI
+    # -----------------------------------------------------
+    lang_instructions = ""
+    if lang == "mr":
+        lang_instructions = """
+LANGUAGE REQUIREMENT (STRICT):
+- The user's interface language is MARATHI (मराठी).
+- You MUST respond in fluent, grammatically correct Marathi (मराठी).
+- If the user writes in Marathi, respond in Marathi.
+- Provide all follow-up suggestions in Marathi in the [SUGGESTIONS: प्रश्न १ | प्रश्न २ | प्रश्न ३] format.
+- Keep Indian financial terms natural (उदा. सिबिल स्कोर, क्रेडिट मर्यादा, ईएमआय).
+"""
+    elif lang == "hi":
+        lang_instructions = """
+LANGUAGE REQUIREMENT (STRICT):
+- The user's interface language is HINDI (हिंदी).
+- You MUST respond in fluent, grammatically correct Hindi (हिंदी).
+- If the user writes in Hindi, respond in Hindi.
+- Provide all follow-up suggestions in Hindi in the [SUGGESTIONS: प्रश्न १ | प्रश्न २ | प्रश्न ३] format.
+- Keep Indian financial terms natural (उदा. सिबिल स्कोर, क्रेडिट लिमिट, ईएमआई).
+"""
+    else:
+        lang_instructions = """
+LANGUAGE REQUIREMENT:
+- If the user asks in Marathi, respond in Marathi (मराठी).
+- If the user asks in Hindi, respond in Hindi (हिंदी).
+- If the user asks in English, respond in English.
+- Always provide the follow-up suggestions in the same language as your response.
 """
 
-    if GEMINI_API_KEY:
-        try:
-            # Attempt to use gemini-1.5-flash or gemini-2.0-flash
-            model_names = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-pro"]
-            model = None
-            for m in model_names:
-                try:
-                    model = genai.GenerativeModel(m)
-                    break
-                except Exception:
-                    continue
+    # -----------------------------------------------------
+    # GEMINI PROMPT
+    # -----------------------------------------------------
 
-            if model:
-                full_prompt = f"{system_instruction}\n\nUser Question: {user_message}\n\nPlease respond with your advice, and at the very end on a new line output: [SUGGESTIONS: question 1 | question 2 | question 3]"
-                response = model.generate_content(full_prompt)
-                text = response.text
+    prompt = f"""
+You are CreditGenius, a helpful AI assistant inside a
+credit-health application for users in India.
 
-                suggestions = []
-                if "[SUGGESTIONS:" in text:
-                    parts = text.split("[SUGGESTIONS:")
-                    main_text = parts[0].strip()
-                    sugg_part = parts[1].replace("]", "").strip()
-                    suggestions = [s.strip() for s in sugg_part.split("|") if s.strip()]
-                    return {"response": main_text, "suggested_actions": suggestions[:3]}
-                
-                return {
-                    "response": text.strip(),
-                    "suggested_actions": [
-                        "How to bring my credit utilization below 30%?",
-                        "What is the impact of closing an old credit card?",
-                        "How long does it take to rebuild a 750+ CIBIL score?"
-                    ]
-                }
-        except Exception as e:
-            print(f"Gemini API error: {e}, falling back to intelligent rule-based engine.")
+You can answer BOTH:
+1. General questions normally, like a general AI assistant.
+2. Credit and financial-health questions using the user's
+   supplied profile when relevant.
 
-    # Rule-based fallback if no Gemini key or network issue
-    score = profile.credit_score if profile and profile.credit_score else 700
+CURRENT DATE AND TIME:
+Current date: {current_date}
+Current time: {current_time}
+
+IMPORTANT GUIDELINES:
+{lang_instructions}
+- If the user asks about today's date, use the current date provided above.
+- Answer general questions normally without forcing credit advice if not asked.
+- If the user asks about programming, technology, education, mathematics, general knowledge, etc., answer normally.
+- For credit questions, use the supplied profile when useful.
+- NEVER invent or assume a credit score if one is not in the profile.
+- If credit score is 'Not available', state that no score is recorded rather than guessing.
+- Do not claim access to an official CIBIL bureau pull or real-time credit bureau report.
+- Do not claim to know bank or bureau data unless it appears in the supplied profile.
+- Do not guarantee a future credit score.
+- Avoid personalized high-risk financial decisions.
+- Use Indian Rupees (₹) when discussing Indian money.
+- Use simple Markdown formatting.
+- Keep answers concise, actionable, friendly, and professional.
+
+USER CREDIT PROFILE:
+{context}
+
+PREVIOUS CONVERSATION:
+{history_text}
+
+USER'S LATEST QUESTION:
+{user_message}
+
+Answer the user's question directly.
+Do not unnecessarily mention the user's credit profile if the question is unrelated to credit.
+
+At the end, provide exactly three short follow-up questions using this format:
+[SUGGESTIONS: question 1 | question 2 | question 3]
+"""
+
+    # -----------------------------------------------------
+    # CALL GEMINI
+    # -----------------------------------------------------
+
+    text = call_gemini(prompt)
+
+    if text:
+
+        suggestions = []
+
+        if "[SUGGESTIONS:" in text:
+
+            parts = text.split(
+                "[SUGGESTIONS:",
+                1
+            )
+
+            main_text = parts[0].strip()
+
+            suggestion_text = parts[1]
+
+            suggestion_text = (
+                suggestion_text
+                .replace("]", "")
+                .strip()
+            )
+
+            suggestions = [
+                item.strip()
+                for item in suggestion_text.split("|")
+                if item.strip()
+            ]
+
+            return {
+                "response": main_text,
+                "suggested_actions": suggestions[:3]
+            }
+
+        return {
+            "response": text,
+            "suggested_actions": [
+                "How can I improve my credit score?",
+                "How can I reduce credit utilization?",
+                "How can I manage my loans better?"
+            ]
+        }
+
+    # -----------------------------------------------------
+    # FALLBACK
+    # -----------------------------------------------------
+
+    return rule_based_chat_response(
+        user_message,
+        profile,
+        language=lang
+    )
+
+
+# =========================================================
+# RULE-BASED CHAT FALLBACK (Multilingual & Accurate)
+# =========================================================
+
+def rule_based_chat_response(
+    user_message: str,
+    profile,
+    language: str = "en"
+):
+
+    score = profile.credit_score if profile and profile.credit_score is not None else None
+
     utilization = 0.0
+
     if profile and profile.credit_limit > 0:
-        utilization = round((profile.credit_card_balance / profile.credit_limit) * 100, 1)
+        utilization = round(
+            (
+                profile.credit_card_balance /
+                profile.credit_limit
+            ) * 100,
+            1
+        )
 
     lowered = user_message.lower()
-    if "utilization" in lowered or "card" in lowered or "limit" in lowered:
-        resp = f"Your current credit utilization is **{utilization}%**. In India, CIBIL penalizes utilization above **30%**.\n\n" \
-               f"**Quick action items:**\n" \
-               f"- Pay down at least ₹{max(0, (profile.credit_card_balance - (profile.credit_limit * 0.25))):,.2f} before your billing cycle ends.\n" \
-               f"- Request a credit limit enhancement from your bank (e.g. HDFC, SBI) without taking extra debt, which instantly reduces your utilization ratio.\n" \
-               f"- Split your spends across two billing cycles or make mid-month payments."
-        sugg = ["How to request a credit limit increase?", "Will paying before the statement date help?", "How to track billing cycles?"]
-    elif "improve" in lowered or "boost" in lowered or "increase" in lowered or "score" in lowered:
-        resp = f"Your current score is **{score}**. To target an **Excellent 750+ CIBIL score**, follow these golden steps:\n\n" \
-               f"1. **Zero Missed Payments**: Set auto-debit on total due, not minimum amount due (Payment history is 35% of CIBIL).\n" \
-               f"2. **Cap Utilization at 25-30%**: Currently at {utilization}%. Keeping this low provides an immediate 15-35 point lift within 60 days.\n" \
-               f"3. **Avoid Multiple Loan Inquiries**: Do not apply for multiple credit cards or NBFC instant loans within 90 days."
-        sugg = ["What happens if I only pay the minimum due?", "How often is CIBIL score updated by banks?", "Should I close unused cards?"]
-    elif "loan" in lowered or "emi" in lowered:
-        resp = f"You currently have **{profile.active_loans if profile else 0} active loan(s)** with total debt of **₹{profile.total_debt if profile else 0:,.2f}**.\n\n" \
-               f"- Prioritize repaying high-interest unsecured personal loans or credit card balances first (Avalanche method).\n" \
-               f"- Ensure your Debt-to-Income (DTI) ratio stays below 40% so banks view you as a low-risk borrower."
-        sugg = ["How does loan pre-closure affect CIBIL?", "What is a good DTI ratio in India?", "Secured vs Unsecured loans"]
+    lang = (language or "en").lower()
+
+    # Detect Devanagari / Marathi / Hindi keywords in message
+    is_mr = lang == "mr" or any(w in lowered for w in ["तारीख", "स्कोर", "कर्ज", "क्रेडिट", "मर्यादा"])
+    is_hi = lang == "hi" or any(w in lowered for w in ["तारीख", "स्कोर", "ऋण", "क्रेडिट", "ब्याज"])
+
+    # -----------------------------------------------------
+    # CREDIT UTILIZATION
+    # -----------------------------------------------------
+    if (
+        "utilization" in lowered
+        or "credit card" in lowered
+        or "limit" in lowered
+        or "क्रेडिट" in lowered
+        or "मर्यादा" in lowered
+        or "युटिलायझेशन" in lowered
+        or "यूटिलाइज़ेशन" in lowered
+    ):
+        if is_mr:
+            response = (
+                f"तुमचे सध्याचे क्रेडिट युटिलायझेशन **{utilization}%** आहे.\n\n"
+                f"क्रेडिट युटिलायझेशन ३०% पेक्षा कमी ठेवल्याने CIBIL स्कोर निरोगी राहण्यास मदत होते.\n\n"
+                f"**शिफारस केलेल्या कृती:**\n"
+                f"- क्रेडिट कार्डची बिले वेळेवर भरा.\n"
+                f"- उपलब्ध मर्यादेचा जास्त वापर टाळा.\n"
+                f"- केवळ मर्यादा वाढवण्यासाठी अनावश्यक नवीन कार्ड घेणे टाळा."
+            )
+            suggestions = [
+                "क्रेडिट युटिलायझेशन कसे कमी करावे?",
+                "बिल तारखेपूर्वी भरल्याने फायदा होतो का?",
+                "क्रेडिट मर्यादा वाढवावी का?"
+            ]
+        elif is_hi:
+            response = (
+                f"आपका वर्तमान क्रेडिट यूटिलाइज़ेशन **{utilization}%** है।\n\n"
+                f"क्रेडिट यूटिलाइज़ेशन को ३०% से नीचे रखना सिबिल स्कोर को स्वस्थ रखने में मदद करता है।\n\n"
+                f"**सुझाए गए कदम:**\n"
+                f"- क्रेडिट कार्ड के बिल समय पर चुकाएं।\n"
+                f"- उपलब्ध लिमिट का अत्यधिक उपयोग करने से बचें।\n"
+                f"- केवल लिमिट बढ़ाने के लिए अनावश्यक नए कार्ड न लें।"
+            )
+            suggestions = [
+                "क्रेडिट यूटिलाइज़ेशन कैसे कम करें?",
+                "बिलिंग से पहले भुगतान का क्या लाभ है?",
+                "क्या क्रेडिट लिमिट बढ़वानी चाहिए?"
+            ]
+        else:
+            response = (
+                f"Your current credit utilization is **{utilization}%**.\n\n"
+                f"Keeping credit utilization relatively low (under 30%) can help maintain a healthier credit profile.\n\n"
+                f"**Suggested actions:**\n"
+                f"- Avoid unnecessarily using most of your available limit.\n"
+                f"- Pay credit-card bills on time before the billing cycle cut-off.\n"
+                f"- Avoid opening unnecessary new credit tradelines simply to stretch your limit."
+            )
+            suggestions = [
+                "How can I reduce utilization?",
+                "Does paying before the statement help?",
+                "Should I request a higher credit limit?"
+            ]
+
+    # -----------------------------------------------------
+    # CREDIT SCORE
+    # -----------------------------------------------------
+    elif (
+        "score" in lowered
+        or "improve" in lowered
+        or "boost" in lowered
+        or "cibil" in lowered
+        or "सिबिल" in lowered
+        or "सुधार" in lowered
+    ):
+        if is_mr:
+            if score is not None:
+                response = (
+                    f"तुमचा सध्या नोंदवलेला CIBIL क्रेडिट स्कोर **{score}** आहे.\n\n"
+                    f"क्रेडिट प्रोफाइल सुधारण्यासाठी:\n"
+                    f"- प्रत्येक पेमेंट वेळेवर करा.\n"
+                    f"- क्रेडिट युटिलायझेशन ३०% च्या खाली ठेवा.\n"
+                    f"- एकाच वेळी अनेक कर्जांसाठी अर्ज करणे टाळा.\n"
+                    f"- दीर्घकालीन निरोगी क्रेडिट इतिहास टिकवून ठेवा."
+                )
+            else:
+                response = (
+                    "तुमच्या प्रोफाइलमध्ये सध्या कोणताही क्रेडिट स्कोर **उपलब्ध नाही**.\n\n"
+                    "वैयक्तिकृत सल्ल्यासाठी कृपया प्रोफाइल किंवा स्कोअर इतिहासामध्ये तुमचा स्कोअर जोडा.\n\n"
+                    "**निरोगी क्रेडिट तयार करण्याचे मार्ग:**\n"
+                    "- सर्व ईएमआय आणि बिले वेळेवर भरा.\n"
+                    "- क्रेडिट कार्डचा वापर ३०% पेक्षा कमी ठेवा.\n"
+                    "- अनावश्यक क्रेडिट अर्ज टाळा."
+                )
+            suggestions = [
+                "स्कोर सुधारण्यासाठी किती वेळ लागतो?",
+                "क्रेडिट स्कोरवर कशाचा परिणाम होतो?",
+                "वेळेवर पेमेंट कसे सुनिश्चित करावे?"
+            ]
+        elif is_hi:
+            if score is not None:
+                response = (
+                    f"आपका वर्तमान दर्ज सिबिल क्रेडिट स्कोर **{score}** है।\n\n"
+                    f"क्रेडिट प्रोफाइल सुधारने के लिए:\n"
+                    f"- प्रत्येक भुगतान समय पर करें।\n"
+                    f"- क्रेडिट यूटिलाइज़ेशन ३०% से कम रखें।\n"
+                    f"- अनावश्यक ऋण आवेदनों से बचें।\n"
+                    f"- दीर्घकालिक स्वस्थ क्रेडिट इतिहास बनाए रखें।"
+                )
+            else:
+                response = (
+                    "आपकी प्रोफाइल में फिलहाल कोई क्रेडिट स्कोर **दर्ज नहीं है**।\n\n"
+                    "सटीक मार्गदर्शन के लिए कृपया स्कोर हिस्ट्री या प्रोफाइल में अपना स्कोर दर्ज करें।\n\n"
+                    "**स्वस्थ क्रेडिट बनाने के सुझाव:**\n"
+                    "- समय पर ईएमआई और बिल चुकाएं।\n"
+                    "- क्रेडिट लिमिट का ३०% से कम उपयोग करें।\n"
+                    "- अनावश्यक लोन आवेदन न करें।"
+                )
+            suggestions = [
+                "स्कोर सुधारने में कितना समय लगता है?",
+                "क्रेडिट स्कोर को क्या प्रभावित करता है?",
+                "ईएमआई समय पर कैसे रखें?"
+            ]
+        else:
+            if score is not None:
+                response = (
+                    f"Your current recorded credit score is **{score}**.\n\n"
+                    f"To work toward a healthier credit profile:\n"
+                    f"- Make every payment on time (35% factor).\n"
+                    f"- Keep revolving credit utilization under 30%.\n"
+                    f"- Avoid submitting multiple hard credit inquiries in short succession.\n"
+                    f"- Maintain a healthy credit mix and established credit age."
+                )
+            else:
+                response = (
+                    "Your credit score is currently **not available** in your profile.\n\n"
+                    "Please record your initial score in Profile or Score History to receive personalized tier analysis.\n\n"
+                    "**Fundamental habits to build a strong credit profile:**\n"
+                    "- Make every payment on time.\n"
+                    "- Keep card utilization below 30% of your total limit.\n"
+                    "- Avoid opening too many new loans simultaneously."
+                )
+            suggestions = [
+                "How long does score improvement take?",
+                "What affects an Indian CIBIL score?",
+                "How can I avoid missed payments?"
+            ]
+
+    # -----------------------------------------------------
+    # LOANS / EMI
+    # -----------------------------------------------------
+    elif (
+        "loan" in lowered
+        or "emi" in lowered
+        or "debt" in lowered
+        or "कर्ज" in lowered
+        or "ऋण" in lowered
+        or "ईएमआय" in lowered
+        or "ईएमआई" in lowered
+    ):
+        loans = profile.active_loans if profile else 0
+        debt = profile.total_debt if profile else 0
+
+        if is_mr:
+            response = (
+                f"तुमच्या प्रोफाइलवर सध्या **{loans} सक्रिय कर्ज(े)** नोंदवली आहेत, "
+                f"आणि एकूण कर्ज **₹{debt:,.2f}** आहे.\n\n"
+                f"ईएमआय वेळेवर भरण्यावर लक्ष केंद्रित करा आणि अनावश्यक अतिरिक्त कर्ज घेणे टाळा."
+            )
+            suggestions = [
+                "कर्ज परतफेडीचा स्कोरवर कसा परिणाम होतो?",
+                "योग्य कर्ज स्तर कोणता आहे?",
+                "कर्ज लवकर फेडावे का?"
+            ]
+        elif is_hi:
+            response = (
+                f"आपकी प्रोफाइल में वर्तमान में **{loans} सक्रिय ऋण** दर्ज हैं, "
+                f"और कुल ऋण **₹{debt:,.2f}** है।\n\n"
+                f"समय पर ईएमआई चुकाने पर ध्यान दें और अनावश्यक अतिरिक्त कर्ज लेने से बचें।"
+            )
+            suggestions = [
+                "ऋण पुनर्भुगतान स्कोर को कैसे प्रभावित करता है?",
+                "स्वस्थ ऋण स्तर क्या है?",
+                "क्या समय से पहले ऋण चुकाना चाहिए?"
+            ]
+        else:
+            response = (
+                f"You currently have **{loans} active loan(s)** recorded in your profile, "
+                f"with total debt of **₹{debt:,.2f}**.\n\n"
+                f"Focus on making EMIs on time and avoid taking on unnecessary additional debt."
+            )
+            suggestions = [
+                "How does loan repayment affect credit?",
+                "What is a healthy debt level?",
+                "Should I repay a loan early?"
+            ]
+
+    # -----------------------------------------------------
+    # GENERAL FALLBACK
+    # -----------------------------------------------------
     else:
-        resp = f"Hello! As your AI Credit Assistant, I'm here to help you optimize your CIBIL score (currently **{score}**) and manage your Indian credit portfolio.\n\n" \
-               f"Here are key areas we can explore:\n" \
-               f"- Lowering your credit utilization (currently **{utilization}%**)\n" \
-               f"- Creating a structured debt payoff plan\n" \
-               f"- Best practices for CIBIL score tracking and dispute resolution\n\n" \
-               f"Feel free to ask any specific credit question!"
-        sugg = ["Analyze my complete credit health", "How to reach 750+ CIBIL score?", "How to reduce debt quickly?"]
+        if is_mr:
+            response = (
+                "नमस्कार! 👋 मी तुमचा **CreditGenius** आर्थिक सल्लागार आहे.\n\n"
+                "मी तुम्हाला पुढील विषयांवर मदत करू शकतो:\n"
+                "- CIBIL क्रेडिट स्कोर सुधारणा\n"
+                "- क्रेडिट कार्ड युटिलायझेशन व्यवस्थापन\n"
+                "- कर्ज आणि ईएमआय नियोजन\n"
+                "- देयके आणि आर्थिक उद्दिष्टे"
+            )
+            suggestions = [
+                "माझे क्रेडिट आरोग्य तपासा",
+                "माझा स्कोर कसा वाढवू?",
+                "कर्ज कसे कमी करावे?"
+            ]
+        elif is_hi:
+            response = (
+                "नमस्ते! 👋 मैं आपका **CreditGenius** वित्तीय सहायक हूँ।\n\n"
+                "मैं इन विषयों में आपकी सहायता कर सकता हूँ:\n"
+                "- सिबिल क्रेडिट स्कोर सुधार\n"
+                "- क्रेडिट कार्ड यूटिलाइज़ेशन प्रबंधन\n"
+                "- ऋण और ईएमआई योजना\n"
+                "- भुगतान और वित्तीय लक्ष्य"
+            )
+            suggestions = [
+                "मेरा क्रेडिट स्वास्थ्य विश्लेषित करें",
+                "स्कोर कैसे सुधारें?",
+                "कर्ज कैसे कम करें?"
+            ]
+        else:
+            response = (
+                "Hello! 👋 I'm your **CreditGenius** assistant.\n\n"
+                "I can help you with:\n"
+                "- CIBIL credit score improvement\n"
+                "- Credit card utilization\n"
+                "- Loans and EMI planning\n"
+                "- Missed payments and debt reduction\n"
+                "- Credit-health optimization"
+            )
+            suggestions = [
+                "Analyze my credit health",
+                "How can I improve my score?",
+                "How can I reduce my debt?"
+            ]
 
-    return {"response": resp, "suggested_actions": sugg}
+    return {
+        "response": response,
+        "suggested_actions": suggestions
+    }
 
 
-def generate_ai_recommendations(profile, accounts=None) -> dict:
-    context = get_cibil_context(profile, accounts)
+# =========================================================
+# AI RECOMMENDATIONS
+# =========================================================
 
-    if GEMINI_API_KEY:
-        try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            prompt = f"""
-You are a senior CIBIL credit analyst in India. Analyze the following user profile and return a valid JSON object matching this structure:
+def generate_ai_recommendations(
+    profile,
+    accounts=None
+) -> dict:
+
+    context = get_cibil_context(
+        profile,
+        accounts
+    )
+
+    prompt = f"""
+You are an educational credit-health assistant for India.
+
+Analyze the following profile.
+
+Return ONLY valid JSON with exactly these fields:
+
 {{
-  "summary": "2-3 sentence overview of the user's CIBIL profile",
-  "cibil_health_status": "Excellent" | "Good" | "Fair" | "Needs Attention",
-  "strengths": ["point 1", "point 2"],
-  "risk_factors": ["risk 1", "risk 2"],
-  "actionable_steps": ["step 1", "step 2", "step 3", "step 4"],
-  "target_score_projection": "Realistic 6-month projected CIBIL score range, e.g., 760 - 785 (+40 pts)"
+  "summary": "short summary",
+  "cibil_health_status": "Excellent",
+  "strengths": ["strength 1"],
+  "risk_factors": ["risk 1"],
+  "actionable_steps": ["step 1", "step 2"],
+  "target_score_projection": "Educational range only; no guarantee"
 }}
 
-User Profile:
+Do not claim this is an official CIBIL report.
+
+User profile:
+
 {context}
-
-Respond ONLY with valid JSON.
 """
-            res = model.generate_content(prompt)
-            clean_text = res.text.strip()
-            if clean_text.startswith("```"):
-                clean_text = clean_text.strip("`").replace("json", "").strip()
-            data = json.loads(clean_text)
-            return data
-        except Exception as e:
-            print(f"Gemini recommendations error: {e}, falling back to rule-based engine.")
 
-    # Rule-based fallback
-    score = profile.credit_score if profile and profile.credit_score else 720
+    text = call_gemini(prompt)
+
+    data = extract_json(text)
+
+    if data:
+        return data
+
+    return rule_based_recommendations(
+        profile
+    )
+
+
+# =========================================================
+# RULE-BASED RECOMMENDATIONS (Accurate, No Assumed Scores)
+# =========================================================
+
+def rule_based_recommendations(profile):
+
+    score = (
+        profile.credit_score
+        if profile and profile.credit_score is not None
+        else None
+    )
+
     utilization = 0.0
-    if profile and profile.credit_limit > 0:
-        utilization = round((profile.credit_card_balance / profile.credit_limit) * 100, 1)
 
-    missed = profile.missed_payments if profile else 0
-    dti = 0.0
-    if profile and profile.monthly_income > 0:
-        dti = round((profile.total_debt / (profile.monthly_income * 12)) * 100, 1)
+    if profile and profile.credit_limit > 0:
+        utilization = round(
+            (
+                profile.credit_card_balance /
+                profile.credit_limit
+            ) * 100,
+            1
+        )
+
+    missed = (
+        profile.missed_payments
+        if profile
+        else 0
+    )
+
+    if score is not None:
+        if score >= 750:
+            health = "Excellent"
+        elif score >= 700:
+            health = "Good"
+        elif score >= 650:
+            health = "Fair"
+        else:
+            health = "Needs Attention"
+    else:
+        health = "Not Assessed"
 
     strengths = []
     risks = []
     actions = []
 
-    if score >= 750:
-        health_status = "Excellent"
-        strengths.append("High CIBIL score (750+) unlocks prime lending rates and pre-approved offers from Indian banks.")
-    elif score >= 700:
-        health_status = "Good"
-        strengths.append("Healthy score with strong potential to enter prime tier (750+).")
-    elif score >= 650:
-        health_status = "Fair"
-        risks.append("Score is below prime threshold (700); loan approvals may carry higher interest margins.")
+    if score is not None:
+        if score >= 700:
+            strengths.append(
+                "Recorded credit score is in a relatively strong range."
+            )
+        else:
+            risks.append(
+                "Recorded credit score indicates room for improvement."
+            )
     else:
-        health_status = "Needs Attention"
-        risks.append("Score is in the caution zone; banks may reject unsecured credit card or loan applications.")
+        actions.append(
+            "Record your credit score snapshot in Score History to enable score-tier recommendations."
+        )
 
     if missed == 0:
-        strengths.append("Clean repayment record with 0 missed payments.")
+        strengths.append(
+            "No missed payments are recorded in the profile."
+        )
     else:
-        risks.append(f"{missed} missed payment(s) detected. Recent defaults heavily penalize CIBIL score.")
-        actions.append("Clear all overdue balances immediately to avoid 30+ DPD (Days Past Due) reporting to CIBIL.")
+        risks.append(
+            f"{missed} missed payment(s) are recorded."
+        )
+        actions.append(
+            "Prioritize making all future payments on time."
+        )
 
     if utilization <= 30:
-        strengths.append(f"Credit card utilization is at {utilization}%, within the recommended 30% boundary.")
+        strengths.append(
+            f"Recorded credit utilization is {utilization}%."
+        )
     else:
-        risks.append(f"Credit card utilization is high at {utilization}%. High CUR signals credit hunger to lenders.")
-        actions.append(f"Pay down credit card outstanding to bring utilization below ₹{(profile.credit_limit * 0.3):,.0f} (30%).")
+        risks.append(
+            f"Credit utilization is relatively high at {utilization}%."
+        )
+        actions.append(
+            "Work toward reducing revolving credit utilization below 30%."
+        )
 
-    if dti > 40:
-        risks.append(f"Annual Debt-to-Income ratio is high ({dti}%).")
-        actions.append("Avoid new loan applications until existing EMI obligations are reduced.")
+    actions.append(
+        "Monitor your credit profile regularly."
+    )
+    actions.append(
+        "Avoid unnecessary hard credit inquiries or loan applications."
+    )
+
+    if score is not None:
+        summary_msg = (
+            f"Your recorded credit profile is currently assessed as '{health}' "
+            f"with a score of {score}."
+        )
     else:
-        strengths.append(f"Manageable Debt-to-Income ratio ({dti}%).")
-
-    actions.append("Enable auto-debit for full credit card statement balance each month.")
-    actions.append("Maintain oldest credit accounts open to preserve established credit history length.")
-
-    projection = f"{min(850, score + 35)} - {min(880, score + 65)} (+40 to +65 pts)"
+        summary_msg = (
+            f"Your credit profile is evaluated as '{health}' (no score recorded). "
+            f"Credit utilization is {utilization}% with {missed} missed payment(s) recorded."
+        )
 
     return {
-        "summary": f"Your CIBIL profile is currently rated as '{health_status}' with a score of {score}. Your utilization stands at {utilization}% and payment track shows {missed} defaults.",
-        "cibil_health_status": health_status,
-        "strengths": strengths,
-        "risk_factors": risks if risks else ["No major immediate credit risks identified."],
+        "summary": summary_msg,
+        "cibil_health_status": health,
+        "strengths": strengths or ["Basic credit profile data is available."],
+        "risk_factors": risks or [
+            "No major immediate risks identified from the supplied data."
+        ],
         "actionable_steps": actions,
-        "target_score_projection": projection
+        "target_score_projection": (
+            "Future score cannot be guaranteed; focus on consistent healthy credit behavior."
+        )
     }
 
 
-def generate_ai_credit_analysis(profile, accounts=None, payments=None) -> dict:
-    context = get_cibil_context(profile, accounts)
-    disclaimer = "Educational estimate based on CIBIL TransUnion scoring methodology. Not an official credit bureau score report."
+# =========================================================
+# AI CREDIT ANALYSIS
+# =========================================================
 
-    if GEMINI_API_KEY:
-        try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            prompt = f"""
-You are a senior credit risk analyst in India. Perform a deep-dive educational credit analysis on the following profile.
-Return a valid JSON matching this schema:
+def generate_ai_credit_analysis(
+    profile,
+    accounts=None,
+    payments=None
+) -> dict:
+
+    context = get_cibil_context(
+        profile,
+        accounts
+    )
+
+    disclaimer = (
+        "Educational credit analysis based strictly on user-supplied information in Credit Assistant. "
+        "This does not access or pull an official credit bureau report from TransUnion CIBIL or other credit bureaus."
+    )
+
+    prompt = f"""
+You are an educational credit-risk assistant for India.
+
+Analyze this user's credit profile.
+
+Return ONLY valid JSON:
+
 {{
-  "cibil_health_score": {profile.credit_score if profile and profile.credit_score else 720},
-  "health_grade": "Excellent" | "Good" | "Fair" | "Needs Attention",
-  "summary": "3-4 sentence comprehensive analysis of debt, credit utilization, and repayment health",
-  "key_positive_factors": ["factor 1", "factor 2"],
-  "critical_risk_factors": ["risk 1", "risk 2"],
-  "immediate_action_items": ["action 1", "action 2"],
-  "long_term_strategy": ["strategy 1", "strategy 2"],
+  "cibil_health_score": null,
+  "health_grade": "Good",
+  "summary": "short analysis",
+  "key_positive_factors": ["factor 1"],
+  "critical_risk_factors": ["risk 1"],
+  "immediate_action_items": ["action 1"],
+  "long_term_strategy": ["strategy 1"],
   "educational_disclaimer": "{disclaimer}"
 }}
 
-User Context:
+Use the user's recorded score if available. If none exists, keep cibil_health_score as null.
+Do not assume or invent a default credit score like 700 or 720.
+Do not guarantee future score changes.
+Do not claim access to an official CIBIL bureau pull or real-time bureau data.
+
+User context:
 {context}
-
-Respond ONLY with valid JSON.
 """
-            res = model.generate_content(prompt)
-            clean_text = res.text.strip()
-            if clean_text.startswith("```"):
-                clean_text = clean_text.strip("`").replace("json", "").strip()
-            data = json.loads(clean_text)
-            data["educational_disclaimer"] = disclaimer
-            return data
-        except Exception as e:
-            print(f"Gemini analysis error: {e}, falling back to rule-based engine.")
 
-    # Rule-based fallback
-    score = profile.credit_score if profile and profile.credit_score else 720
+    text = call_gemini(prompt)
+
+    data = extract_json(text)
+
+    if data:
+        data["educational_disclaimer"] = disclaimer
+        return data
+
+    return rule_based_analysis(
+        profile,
+        disclaimer
+    )
+
+
+# =========================================================
+# RULE-BASED CREDIT ANALYSIS (Accurate, Safe)
+# =========================================================
+
+def rule_based_analysis(
+    profile,
+    disclaimer
+):
+
+    score = (
+        profile.credit_score
+        if profile and profile.credit_score is not None
+        else None
+    )
+
     utilization = 0.0
+
     if profile and profile.credit_limit > 0:
-        utilization = round((profile.credit_card_balance / profile.credit_limit) * 100, 1)
+        utilization = round(
+            (
+                profile.credit_card_balance /
+                profile.credit_limit
+            ) * 100,
+            1
+        )
 
-    missed = profile.missed_payments if profile else 0
-    dti = 0.0
-    if profile and profile.monthly_income > 0:
-        dti = round((profile.total_debt / (profile.monthly_income * 12)) * 100, 1)
+    missed = (
+        profile.missed_payments
+        if profile
+        else 0
+    )
 
-    if score >= 750:
-        grade = "Excellent"
-    elif score >= 700:
-        grade = "Good"
-    elif score >= 650:
-        grade = "Fair"
+    if score is not None:
+        if score >= 750:
+            grade = "Excellent"
+        elif score >= 700:
+            grade = "Good"
+        elif score >= 650:
+            grade = "Fair"
+        else:
+            grade = "Needs Attention"
     else:
-        grade = "Needs Attention"
+        grade = "Not Assessed"
 
     positives = []
     risks = []
     actions = []
-    long_term = [
-        "Keep your oldest credit accounts open to preserve established credit history age.",
-        "Aim for a balanced mix of secured (e.g. Home/Auto) and revolving credit over time."
-    ]
 
     if missed == 0:
-        positives.append("Flawless payment history: 100% on-time record across reported credit lines.")
+        positives.append(
+            "No missed payments are recorded."
+        )
     else:
-        risks.append(f"{missed} overdue payment(s) reported, which weighs 35% on CIBIL calculations.")
-        actions.append("Prioritize clearing overdue accounts immediately to restore clean reporting status.")
+        risks.append(
+            f"{missed} missed payment(s) are recorded."
+        )
+        actions.append(
+            "Make all future payments on time."
+        )
 
     if utilization <= 30:
-        positives.append(f"Low credit card utilization of {utilization}% (well within the recommended 30% ceiling).")
+        positives.append(
+            f"Credit utilization is {utilization}%."
+        )
     else:
-        risks.append(f"High credit utilization of {utilization}%, indicating dependence on revolving credit lines.")
-        target_repay = max(0, profile.credit_card_balance - (profile.credit_limit * 0.3))
-        actions.append(f"Pay down at least ₹{target_repay:,.0f} to bring card balance below 30% utilization.")
+        risks.append(
+            f"Credit utilization is {utilization}%."
+        )
+        actions.append(
+            "Reduce revolving credit utilization below 30%."
+        )
 
-    if dti <= 35:
-        positives.append(f"Manageable annual Debt-to-Income ratio of {dti}%.")
+    if score is None:
+        actions.append(
+            "Record your credit score in Profile or Score History to receive personalized score grade analysis."
+        )
+        summary_text = (
+            f"Your credit profile has not recorded a credit score yet. "
+            f"Credit utilization is {utilization}% and {missed} missed payment(s) are recorded."
+        )
     else:
-        risks.append(f"Elevated Debt-to-Income ratio of {dti}%, which may constrain future loan eligibility.")
-        actions.append("Restrict new unsecured credit applications until existing obligations reduce.")
-
-    summary = f"Your overall credit profile is evaluated as '{grade}' with a score of {score}. Your revolving card utilization is {utilization}% and annual DTI stands at {dti}% with {missed} reported missed payments."
+        summary_text = (
+            f"Your recorded credit profile is assessed as '{grade}' with a score of {score}. "
+            f"Credit utilization is {utilization}% and {missed} missed payment(s) are recorded."
+        )
 
     return {
         "cibil_health_score": score,
         "health_grade": grade,
-        "summary": summary,
-        "key_positive_factors": positives if positives else ["Basic credit history established."],
-        "critical_risk_factors": risks if risks else ["No acute negative credit events recorded."],
-        "immediate_action_items": actions if actions else ["Continue regular monthly auto-debit payments."],
-        "long_term_strategy": long_term,
+        "summary": summary_text,
+        "key_positive_factors": positives or [
+            "Basic credit profile information is available."
+        ],
+        "critical_risk_factors": risks or [
+            "No major immediate risks identified."
+        ],
+        "immediate_action_items": actions or [
+            "Continue making payments on time."
+        ],
+        "long_term_strategy": [
+            "Maintain consistent payment behavior across all accounts.",
+            "Keep credit card utilization well below 30%.",
+            "Avoid submitting multiple hard credit inquiries in a short timeframe."
+        ],
         "educational_disclaimer": disclaimer
     }
+
+
+
+
+
 

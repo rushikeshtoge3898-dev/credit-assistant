@@ -314,7 +314,7 @@ def update_credit_profile(
     if not profile:
         profile = CreditProfile(
             user_id=current_user.id,
-            credit_score=profile_update.credit_score if profile_update.credit_score is not None else 700,
+            credit_score=profile_update.credit_score,
             monthly_income=profile_update.monthly_income if profile_update.monthly_income is not None else 0.0,
             total_debt=profile_update.total_debt if profile_update.total_debt is not None else 0.0,
             credit_limit=profile_update.credit_limit if profile_update.credit_limit is not None else 0.0,
@@ -863,7 +863,24 @@ def ai_chat(
         user_message=req.message,
         profile=profile,
         accounts=accounts,
-        chat_history=req.history
+        chat_history=req.history,
+        language=req.language or "en"
+    )
+    return result
+
+
+@api_router.post("/ai/guest-chat", response_model=AIChatResponse)
+@app.post("/ai/guest-chat", response_model=AIChatResponse)
+def ai_guest_chat(
+    req: AIChatRequest
+):
+    # Guest chat operates with demo data in memory without touching user database
+    result = generate_ai_chat_response(
+        user_message=req.message,
+        profile=None,
+        accounts=None,
+        chat_history=req.history,
+        language=req.language or "en"
     )
     return result
 
