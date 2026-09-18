@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import api, { creditAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { guestData } from "../services/guestData";
 import {
   ResponsiveContainer,
   LineChart,
@@ -25,15 +28,24 @@ import {
 } from "lucide-react";
 
 export default function ScoreHistory() {
+  const { isGuest } = useAuth();
+  const { t } = useLanguage();
+
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newScore, setNewScore] = useState(730);
+  const [newScore, setNewScore] = useState(750);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const fetchHistory = async () => {
     try {
+      if (isGuest) {
+        setHistory(guestData.getGuestScoreHistory());
+        setLoading(false);
+        return;
+      }
+
       let data = [];
       try {
         data = await creditAPI.getScoreHistory();
@@ -41,7 +53,7 @@ export default function ScoreHistory() {
         const fallbackRes = await api.get("/credit/score-history");
         data = fallbackRes.data;
       }
-      setHistory(data);
+      setHistory(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch score history:", err);
       setError("Unable to load score trend history. Please retry.");
@@ -52,7 +64,7 @@ export default function ScoreHistory() {
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [isGuest]);
 
   const handleAddScore = async (e) => {
     e.preventDefault();
@@ -62,6 +74,20 @@ export default function ScoreHistory() {
 
     try {
       const scoreVal = parseInt(newScore);
+      if (isNaN(scoreVal) || scoreVal < 300 || scoreVal > 900) {
+        setError("Please enter a valid CIBIL score between 300 and 900.");
+        setSubmitting(false);
+        return;
+      }
+
+      if (isGuest) {
+        guestData.addGuestScore(scoreVal);
+        setMessage(`Successfully recorded CIBIL snapshot of ${scoreVal}!`);
+        fetchHistory();
+        setSubmitting(false);
+        return;
+      }
+
       try {
         await creditAPI.addScoreHistory({ credit_score: scoreVal });
         await creditAPI.updateProfile({ credit_score: scoreVal });
@@ -106,11 +132,12 @@ export default function ScoreHistory() {
     };
   });
 
-  const currentScore = history.length > 0 ? history[history.length - 1].credit_score : 720;
+  const currentScore = history.length > 0 ? history[history.length - 1].credit_score : null;
+  const hasScore = currentScore !== null;
   const previousScore = history.length >= 2 ? history[history.length - 2].credit_score : null;
-  const recentChange = previousScore !== null ? currentScore - previousScore : 0;
-  const initialScore = history.length > 0 ? history[0].credit_score : currentScore;
-  const netDiff = currentScore - initialScore;
+  const recentChange = hasScore && previousScore !== null ? currentScore - previousScore : 0;
+  const initialScore = history.length > 0 ? history[0].credit_score : null;
+  const netDiff = hasScore && initialScore !== null ? currentScore - initialScore : 0;
 
   // Custom professional tooltip
   const CustomTooltip = ({ active, payload, label }) => {
@@ -189,11 +216,17 @@ export default function ScoreHistory() {
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-lg">
           <div className="text-xs text-slate-400">Current Score</div>
           <div className="text-2xl font-black text-white mt-1 flex items-baseline gap-1.5">
-            <span>{currentScore}</span>
-            <span className="text-xs text-slate-400 font-mono">/ 900</span>
+            <span>{hasScore ? currentScore : "Not Recorded"}</span>
+            {hasScore && <span className="text-xs text-slate-400 font-mono">/ 900</span>}
           </div>
-          <div className="text-xs text-emerald-400 font-semibold mt-1">
-            {currentScore >= 750 ? "Prime / Excellent" : currentScore >= 700 ? "Good" : "Needs Care"}
+          <div className="text-xs font-semibold mt-1">
+            {hasScore ? (
+              <span className={currentScore >= 750 ? "text-emerald-400" : currentScore >= 700 ? "text-teal-400" : "text-amber-400"}>
+                {currentScore >= 750 ? "Prime / Excellent" : currentScore >= 700 ? "Good" : "Needs Care"}
+              </span>
+            ) : (
+              <span className="text-slate-500">No score logged</span>
+            )}
           </div>
         </div>
 
@@ -235,7 +268,11 @@ export default function ScoreHistory() {
             750+
           </div>
           <div className="text-xs text-slate-400 mt-1">
-            {currentScore >= 750 ? "Target Achieved!" : `${750 - currentScore} pts needed`}
+            {hasScore
+              ? currentScore >= 750
+                ? "Target Achieved!"
+                : `${750 - currentScore} pts needed`
+              : "750 Prime Milestone"}
           </div>
         </div>
       </div>

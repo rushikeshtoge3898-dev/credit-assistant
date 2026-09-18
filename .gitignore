@@ -56,3 +56,6 @@ frontend/dist-ssr/
 .DS_Store
 Thumbs.db
 .vercel
+
+# Firebase local cache
+.firebase/

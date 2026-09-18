@@ -2,24 +2,17 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import {
-  signInWithGoogle,
-  requestPasswordReset,
-  isFirebaseConfigured
-} from "../services/firebase";
+import { signInWithGoogle, requestPasswordReset } from "../services/firebase";
+import { authAPI } from "../services/api";
 import {
   ShieldCheck,
   Lock,
   Mail,
   ArrowRight,
   AlertCircle,
-  Phone,
-  HelpCircle,
   CheckCircle2,
   Sparkles,
   KeyRound,
-  UserCheck,
-  Info
 } from "lucide-react";
 
 function Login() {
@@ -28,19 +21,12 @@ function Login() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("email"); // "email" | "phone"
 
   // Forgot Password modal state
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState({ error: "", success: "" });
-
-  // Phone OTP states
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [phoneLoading, setPhoneLoading] = useState(false);
 
   const { login, loginAsGuest, loginWithFirebaseUser } = useAuth();
   const { currentLanguage, setLanguage, t, languages } = useLanguage();
@@ -81,13 +67,24 @@ function Login() {
 
     try {
       const fbUser = await signInWithGoogle();
-      loginWithFirebaseUser(fbUser);
+      try {
+        const backendAuth = await authAPI.firebaseLogin({
+          firebase_uid: fbUser.uid,
+          email: fbUser.email,
+          name: fbUser.name,
+          phone_number: null,
+        });
+        loginWithFirebaseUser(backendAuth.user, backendAuth.access_token);
+      } catch (backendErr) {
+        console.warn("Backend firebase-login sync fallback:", backendErr);
+        loginWithFirebaseUser(fbUser);
+      }
       navigate("/dashboard");
     } catch (err) {
       console.error("Google sign-in failed:", err);
       setError(
         err.message ||
-          "Google sign-in was canceled or encountered a configuration issue. (Ensure Firebase credentials are set in .env)"
+          "Google sign-in was canceled or encountered a configuration issue. (Ensure Firebase credentials are set in .env and domain is authorized in Firebase Console)"
       );
     } finally {
       setLoading(false);
@@ -117,60 +114,6 @@ function Login() {
       });
     } finally {
       setResetLoading(false);
-    }
-  };
-
-  // 5. Mobile Number + OTP Login
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
-    setError("");
-    const cleanPhone = phoneNumber.trim().replace(/\s+/g, "");
-    if (!cleanPhone || cleanPhone.length < 10) {
-      setError("Please enter a valid 10-digit Indian mobile number.");
-      return;
-    }
-
-    setPhoneLoading(true);
-    try {
-      if (!isFirebaseConfigured) {
-        // Safe interactive demo simulation if Firebase keys not configured
-        setOtpSent(true);
-        setSuccessMsg(
-          "Demo verification code 123456 generated. (Add VITE_FIREBASE_API_KEY in frontend/.env for production SMS OTP)."
-        );
-      } else {
-        setOtpSent(true);
-        setSuccessMsg("SMS OTP dispatched to +91 " + cleanPhone);
-      }
-    } catch (err) {
-      setError(err.message || "Could not dispatch SMS OTP. Check phone number.");
-    } finally {
-      setPhoneLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (!otpCode || otpCode.trim().length < 6) {
-      setError("Please enter the 6-digit verification code.");
-      return;
-    }
-
-    setPhoneLoading(true);
-    try {
-      // Simulate verification / Firebase session
-      const phoneUser = {
-        uid: "phone_" + Date.now(),
-        name: `Member (+91 ${phoneNumber.slice(-4)})`,
-        phoneNumber: "+91" + phoneNumber,
-      };
-      loginWithFirebaseUser(phoneUser);
-      navigate("/dashboard");
-    } catch (err) {
-      setError("Invalid or expired OTP verification code.");
-    } finally {
-      setPhoneLoading(false);
     }
   };
 
@@ -216,38 +159,6 @@ function Login() {
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="bg-slate-900/90 backdrop-blur-xl py-6 sm:py-8 px-5 sm:px-8 shadow-2xl shadow-slate-950/80 border border-slate-800 rounded-2xl sm:rounded-3xl">
-          {/* Auth Mode Tabs (Email / Phone OTP) */}
-          <div className="flex items-center border-b border-slate-800 pb-3 mb-5">
-            <button
-              onClick={() => {
-                setActiveTab("email");
-                setError("");
-                setSuccessMsg("");
-              }}
-              className={`flex-1 py-1.5 text-xs font-semibold text-center border-b-2 transition-all cursor-pointer ${
-                activeTab === "email"
-                  ? "border-indigo-500 text-indigo-400"
-                  : "border-transparent text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {t("auth.emailLabel", "Email Login")}
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("phone");
-                setError("");
-                setSuccessMsg("");
-              }}
-              className={`flex-1 py-1.5 text-xs font-semibold text-center border-b-2 transition-all cursor-pointer ${
-                activeTab === "phone"
-                  ? "border-indigo-500 text-indigo-400"
-                  : "border-transparent text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {t("auth.phoneLabel", "Mobile & OTP")}
-            </button>
-          </div>
-
           {/* Feedback Messages */}
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-rose-400 text-xs">
@@ -263,158 +174,74 @@ function Login() {
             </div>
           )}
 
-          {/* TAB 1: Email + Password Login Form */}
-          {activeTab === "email" && (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  {t("auth.emailLabel", "Email Address")}
-                </label>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t("auth.emailPlaceholder", "name@example.com")}
-                    required
-                    className="block w-full pl-10 pr-3.5 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                  />
+          {/* Email + Password Login Form */}
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                {t("auth.emailLabel", "Email Address")}
+              </label>
+              <div className="relative rounded-xl shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                  <Mail className="w-4 h-4" />
                 </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t("auth.emailPlaceholder", "name@example.com")}
+                  required
+                  className="block w-full pl-10 pr-3.5 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                />
               </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
-                    {t("auth.passwordLabel", "Password")}
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowForgotModal(true);
-                      setResetEmail(email);
-                      setResetStatus({ error: "", success: "" });
-                    }}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors cursor-pointer"
-                  >
-                    {t("auth.forgotPasswordLink", "Forgot Password?")}
-                  </button>
-                </div>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    className="block w-full pl-10 pr-3.5 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-600/25 transition-all disabled:opacity-60 cursor-pointer"
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span>{t("auth.signInBtn", "Sign In")}</span>
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-
-          {/* TAB 2: Mobile Number + OTP Login */}
-          {activeTab === "phone" && (
-            <div className="space-y-4">
-              {!otpSent ? (
-                <form onSubmit={handleSendOtp} className="space-y-4">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                      {t("auth.phoneLabel", "Mobile Number")}
-                    </label>
-                    <div className="relative rounded-xl shadow-sm flex items-center">
-                      <span className="inline-flex items-center px-3 py-2.5 rounded-l-xl border border-r-0 border-slate-800 bg-slate-950 text-slate-400 text-xs font-semibold">
-                        +91
-                      </span>
-                      <input
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
-                        placeholder={t("auth.phonePlaceholder", "9876543210")}
-                        maxLength={10}
-                        required
-                        className="block w-full px-3.5 py-2.5 bg-slate-950/70 border border-slate-800 rounded-r-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                      />
-                    </div>
-                    <p className="mt-1 text-[10px] text-slate-500">
-                      {t("auth.recaptchaNote", "Protected by Firebase Phone Authentication")}
-                    </p>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={phoneLoading}
-                    className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-all disabled:opacity-60 cursor-pointer shadow-lg shadow-indigo-600/20"
-                  >
-                    {phoneLoading ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <span>{t("auth.sendOtpBtn", "Send Verification Code")}</span>
-                    )}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
-                        {t("auth.enterOtpLabel", "Enter 6-Digit SMS Code")}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setOtpSent(false)}
-                        className="text-[11px] text-indigo-400 hover:text-indigo-300 cursor-pointer"
-                      >
-                        Change Number
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                      placeholder="123456"
-                      maxLength={6}
-                      required
-                      className="block w-full tracking-widest text-center px-3.5 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-lg font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={phoneLoading}
-                    className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition-all disabled:opacity-60 cursor-pointer shadow-lg shadow-emerald-600/20"
-                  >
-                    {phoneLoading ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <span>{t("auth.verifyOtpBtn", "Verify & Continue")}</span>
-                    )}
-                  </button>
-                </form>
-              )}
             </div>
-          )}
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
+                  {t("auth.passwordLabel", "Password")}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotModal(true);
+                    setResetEmail(email);
+                    setResetStatus({ error: "", success: "" });
+                  }}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors cursor-pointer"
+                >
+                  {t("auth.forgotPasswordLink", "Forgot Password?")}
+                </button>
+              </div>
+              <div className="relative rounded-xl shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="block w-full pl-10 pr-3.5 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-600/25 transition-all disabled:opacity-60 cursor-pointer"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>{t("auth.signInBtn", "Sign In")}</span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
+            </button>
+          </form>
 
           {/* Social Sign-In & Guest Mode Section */}
           <div className="mt-5 pt-5 border-t border-slate-800/80 space-y-3">

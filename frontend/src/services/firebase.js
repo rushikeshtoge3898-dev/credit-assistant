@@ -4,11 +4,9 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
 } from "firebase/auth";
 
-// Environment-driven Firebase Configuration
+// Environment-driven Firebase Configuration (Vite)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
@@ -18,11 +16,12 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
 };
 
-// Check if valid Firebase configuration is present
+// Check if valid Firebase configuration is provided
 export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey &&
-  firebaseConfig.apiKey !== "your-api-key" &&
-  firebaseConfig.authDomain
+  firebaseConfig.apiKey.trim() !== "" &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.authDomain.trim() !== ""
 );
 
 let app = null;
@@ -36,27 +35,39 @@ if (isFirebaseConfigured) {
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ prompt: "select_account" });
   } catch (err) {
-    console.warn("Firebase initialization error:", err);
+    console.error("Firebase initialization failed:", err);
   }
 }
 
 /**
- * Sign in using Google OAuth Popup with Firebase Authentication
+ * Sign in using Google OAuth Popup via Firebase Authentication
  */
 export async function signInWithGoogle() {
   if (!isFirebaseConfigured || !auth) {
     throw new Error(
-      "Firebase credentials are not yet configured. Please set VITE_FIREBASE_API_KEY and VITE_FIREBASE_AUTH_DOMAIN in frontend/.env to enable live Google sign-in."
+      "Firebase Authentication is not configured. Please set VITE_FIREBASE_API_KEY and VITE_FIREBASE_AUTH_DOMAIN in your environment variables and enable Google Provider in Firebase Console."
     );
   }
-  const result = await signInWithPopup(auth, googleProvider);
-  const user = result.user;
-  return {
-    uid: user.uid,
-    name: user.displayName || "Google User",
-    email: user.email,
-    photoURL: user.photoURL,
-  };
+
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    return {
+      uid: user.uid,
+      name: user.displayName || "Google User",
+      email: user.email,
+      photoURL: user.photoURL,
+    };
+  } catch (error) {
+    if (error.code === "auth/popup-closed-by-user") {
+      throw new Error("Sign-in window was closed before completing.");
+    } else if (error.code === "auth/unauthorized-domain") {
+      throw new Error("This domain is not authorized for OAuth operations in Firebase Console (Authentication -> Settings -> Authorized domains).");
+    } else if (error.code === "auth/operation-not-allowed") {
+      throw new Error("Google Sign-In is not enabled in Firebase Console (Authentication -> Sign-in method -> Google).");
+    }
+    throw error;
+  }
 }
 
 /**
@@ -64,52 +75,25 @@ export async function signInWithGoogle() {
  */
 export async function requestPasswordReset(email) {
   if (!isFirebaseConfigured || !auth) {
-    // Return friendly simulated success if Firebase not configured yet
-    console.info(
-      `Password reset requested for: ${email}. Add Firebase config in .env for production SMTP delivery.`
+    throw new Error(
+      "Firebase Authentication is not configured. Please set VITE_FIREBASE_API_KEY and VITE_FIREBASE_AUTH_DOMAIN to dispatch password reset emails."
     );
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
     return {
       success: true,
-      simulated: true,
-      message: `Password reset link simulated for ${email}. (Add Firebase config in .env for production email delivery).`,
+      message: `Password reset instructions have been dispatched to ${email}. Please check your inbox.`,
     };
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      throw new Error("No user registered with this email address.");
+    } else if (error.code === "auth/invalid-email") {
+      throw new Error("Please enter a valid email address.");
+    }
+    throw error;
   }
-  await sendPasswordResetEmail(auth, email);
-  return {
-    success: true,
-    simulated: false,
-    message: `Password reset link sent to ${email}. Check your email inbox.`,
-  };
-}
-
-/**
- * Initialize reCAPTCHA verifier for Phone OTP
- */
-export function createRecaptchaVerifier(containerId, callback) {
-  if (!isFirebaseConfigured || !auth) {
-    return null;
-  }
-  return new RecaptchaVerifier(auth, containerId, {
-    size: "invisible",
-    callback: () => {
-      if (callback) callback();
-    },
-    "expired-callback": () => {
-      console.warn("reCAPTCHA expired");
-    },
-  });
-}
-
-/**
- * Send SMS OTP using Firebase Authentication
- */
-export async function sendPhoneOtp(phoneNumber, appVerifier) {
-  if (!isFirebaseConfigured || !auth) {
-    throw new Error(
-      "Firebase Phone Authentication requires VITE_FIREBASE_API_KEY in frontend/.env."
-    );
-  }
-  return await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
 }
 
 export { auth };

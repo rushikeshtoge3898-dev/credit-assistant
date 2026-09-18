@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import api, { creditAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { User, Shield, IndianRupee, Save, CheckCircle2, AlertCircle } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
+import { guestData } from "../services/guestData";
+import { User, Shield, IndianRupee, Save, CheckCircle2, AlertCircle, Award } from "lucide-react";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -12,6 +15,7 @@ export default function Profile() {
   const [error, setError] = useState("");
 
   // Form states
+  const [creditScore, setCreditScore] = useState("");
   const [income, setIncome] = useState("");
   const [debt, setDebt] = useState("");
   const [limit, setLimit] = useState("");
@@ -22,6 +26,23 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
+      if (isGuest) {
+        const p = guestData.getGuestProfile();
+        setProfile(p);
+        if (p) {
+          setCreditScore(p.credit_score ?? "");
+          setIncome(p.monthly_income ?? "");
+          setDebt(p.total_debt ?? "");
+          setLimit(p.credit_limit ?? "");
+          setBalance(p.credit_card_balance ?? "");
+          setActiveLoans(p.active_loans ?? 0);
+          setMissedPayments(p.missed_payments ?? 0);
+          setFinancialGoal(p.financial_goal ?? "");
+        }
+        setLoading(false);
+        return;
+      }
+
       let p;
       try {
         p = await creditAPI.getProfile();
@@ -31,6 +52,7 @@ export default function Profile() {
       }
       setProfile(p);
       if (p) {
+        setCreditScore(p.credit_score ?? "");
         setIncome(p.monthly_income ?? "");
         setDebt(p.total_debt ?? "");
         setLimit(p.credit_limit ?? "");
@@ -48,7 +70,7 @@ export default function Profile() {
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [isGuest]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -66,7 +88,19 @@ export default function Profile() {
       financial_goal: financialGoal,
     };
 
+    if (creditScore !== "" && !isNaN(parseInt(creditScore))) {
+      payload.credit_score = parseInt(creditScore);
+    }
+
     try {
+      if (isGuest) {
+        guestData.updateGuestProfile(payload);
+        setMessage("Credit profile updated successfully!");
+        fetchProfile();
+        setSaving(false);
+        return;
+      }
+
       try {
         await creditAPI.updateProfile(payload);
       } catch (err) {
@@ -149,6 +183,21 @@ export default function Profile() {
 
         <form onSubmit={handleUpdate} className="space-y-6 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="block font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                Current CIBIL Score (300 - 900)
+              </label>
+              <input
+                type="number"
+                min={300}
+                max={900}
+                placeholder="e.g. 750 (Optional)"
+                value={creditScore}
+                onChange={(e) => setCreditScore(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
             <div>
               <label className="block font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
                 Monthly In-Hand Income (₹)

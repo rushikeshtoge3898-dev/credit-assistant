@@ -1,8 +1,14 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import api, { creditAPI, goalsAPI } from "../services/api";
-import { Target, Plus, CheckCircle2, Sliders, ArrowRight, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { guestData } from "../services/guestData";
+import { Target, Plus, CheckCircle2, Sliders, ArrowRight, Sparkles, TrendingUp, AlertTriangle, Info } from "lucide-react";
 
 export default function Goals() {
+  const { isGuest } = useAuth();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +28,13 @@ export default function Goals() {
 
   const fetchProfileAndGoals = async () => {
     try {
+      if (isGuest) {
+        setProfile(guestData.getGuestProfile());
+        setGoals(guestData.getGuestGoals());
+        setLoading(false);
+        return;
+      }
+
       let pData = null;
       let gData = [];
 
@@ -50,7 +63,7 @@ export default function Goals() {
 
   useEffect(() => {
     fetchProfileAndGoals();
-  }, []);
+  }, [isGuest]);
 
   const handleCreateGoal = async (e) => {
     e.preventDefault();
@@ -61,6 +74,14 @@ export default function Goals() {
       action_plan: actionPlan,
     };
     try {
+      if (isGuest) {
+        guestData.createGuestGoal(payload);
+        setShowGoalModal(false);
+        fetchProfileAndGoals();
+        setSavingGoal(false);
+        return;
+      }
+
       try {
         await goalsAPI.createGoal(payload);
       } catch (err) {
@@ -78,6 +99,12 @@ export default function Goals() {
   const handleToggleGoal = async (goal) => {
     const nextStatus = goal.status === "completed" ? "in_progress" : "completed";
     try {
+      if (isGuest) {
+        guestData.updateGuestGoal(goal.id, { status: nextStatus });
+        fetchProfileAndGoals();
+        return;
+      }
+
       try {
         await goalsAPI.updateGoal(goal.id, { status: nextStatus });
       } catch (err) {
@@ -91,6 +118,12 @@ export default function Goals() {
 
   const handleDeleteGoal = async (id) => {
     try {
+      if (isGuest) {
+        guestData.deleteGuestGoal(id);
+        setGoals(goals.filter((g) => g.id !== id));
+        return;
+      }
+
       try {
         await goalsAPI.deleteGoal(id);
       } catch (err) {
@@ -103,7 +136,8 @@ export default function Goals() {
   };
 
   // Base score
-  const baseScore = profile?.credit_score || 720;
+  const hasScore = typeof profile?.credit_score === "number" && profile.credit_score >= 300;
+  const baseScore = hasScore ? profile.credit_score : null;
   const currentLimit = profile?.credit_limit || 100000;
   const currentBalance = profile?.credit_card_balance || 30000;
 
@@ -128,7 +162,7 @@ export default function Goals() {
   const inquiryPenalty = newInquiry ? -8 : 0;
 
   const totalDelta = utilBonus + ontimeBonus + inquiryPenalty;
-  const projectedScore = Math.min(900, Math.max(300, baseScore + totalDelta));
+  const projectedScore = hasScore ? Math.min(900, Math.max(300, baseScore + totalDelta)) : null;
 
   return (
     <div className="space-y-8">
@@ -137,7 +171,7 @@ export default function Goals() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <Target className="w-7 h-7 text-indigo-400" />
-            Goals & CIBIL Score Simulator
+            {t("nav.goals", "Goals & CIBIL Score Simulator")}
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             Simulate the impact of paying down debt, increasing limits, and staying on-time.
@@ -171,23 +205,45 @@ export default function Goals() {
           {/* Projected Result Gauge */}
           <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 sm:px-6 flex items-center gap-6 self-stretch sm:self-auto justify-between">
             <div>
-              <div className="text-xs text-slate-400">Current Score</div>
-              <div className="text-2xl font-black text-slate-300 font-mono">{baseScore}</div>
+              <div className="text-xs text-slate-400">{t("dashboard.cibilScore", "Current Score")}</div>
+              <div className="text-2xl font-black text-slate-300 font-mono">
+                {hasScore ? baseScore : t("dashboard.notAvailable", "Not Available")}
+              </div>
             </div>
 
             <ArrowRight className="w-6 h-6 text-indigo-400" />
 
             <div>
               <div className="text-xs text-slate-400">Projected Score (Estimate)</div>
-              <div className="text-3xl font-black text-emerald-400 font-mono flex items-baseline gap-1.5">
-                <span>{projectedScore}</span>
-                <span className="text-xs font-bold text-emerald-400 font-sans">
-                  (Est. +{totalDelta} pts)
-                </span>
-              </div>
+              {hasScore ? (
+                <div className="text-3xl font-black text-emerald-400 font-mono flex items-baseline gap-1.5">
+                  <span>{projectedScore}</span>
+                  <span className="text-xs font-bold text-emerald-400 font-sans">
+                    (Est. {totalDelta >= 0 ? `+${totalDelta}` : totalDelta} pts)
+                  </span>
+                </div>
+              ) : (
+                <div className="text-base font-bold text-emerald-400 font-mono">
+                  {totalDelta >= 0 ? `+${totalDelta}` : totalDelta} pts potential impact
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {!hasScore && (
+          <div className="mt-4 p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <span>
+              {t("dashboard.recordScorePrompt", "Add your first score snapshot in Profile or Score History to view exact numerical projections.")}
+            </span>
+            <Link
+              to="/score-history"
+              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs shrink-0"
+            >
+              {t("dashboard.recordScoreBtn", "Record CIBIL Score")}
+            </Link>
+          </div>
+        )}
 
         {/* Controls Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">

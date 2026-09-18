@@ -6,6 +6,8 @@ import api, {
   recommendationsAPI,
 } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { guestData } from "../services/guestData";
 import CibilScoreGauge from "../components/CibilScoreGauge";
 import CreditHealthIndicator from "../components/CreditHealthIndicator";
 import {
@@ -30,7 +32,8 @@ import {
 } from "lucide-react";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { t } = useLanguage();
 
   const [profile, setProfile] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -48,6 +51,15 @@ export default function Dashboard() {
     setError("");
 
     try {
+      if (isGuest) {
+        setProfile(guestData.getGuestProfile());
+        setAnalytics(guestData.getGuestAnalytics());
+        setScoreHistory(guestData.getGuestScoreHistory());
+        setAccounts(guestData.getGuestAccounts());
+        setRecommendations(guestData.getGuestRecommendations());
+        setLoading(false);
+        return;
+      }
       // 1. Fetch Profile
       let pData = null;
 
@@ -141,13 +153,22 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [isGuest]);
 
   const handleSeedData = async () => {
     setSeeding(true);
     setSeedSuccess(false);
 
     try {
+      if (isGuest) {
+        guestData.resetGuestData();
+        setSeedSuccess(true);
+        await fetchDashboardData();
+        setTimeout(() => setSeedSuccess(false), 6000);
+        setSeeding(false);
+        return;
+      }
+
       await creditAPI.seedSampleData();
 
       setSeedSuccess(true);
@@ -176,6 +197,21 @@ export default function Dashboard() {
     const nextCompleted = !rec.is_completed;
 
     try {
+      if (isGuest) {
+        guestData.updateGuestRecommendation(rec.id, {
+          is_completed: nextCompleted,
+        });
+        setRecommendations((prev) =>
+          prev.map((r) =>
+            r.id === rec.id
+              ? { ...r, is_completed: nextCompleted }
+              : r
+          )
+        );
+        setUpdatingRecId(null);
+        return;
+      }
+
       try {
         await recommendationsAPI.updateRecommendation(rec.id, {
           is_completed: nextCompleted,
@@ -345,18 +381,8 @@ export default function Dashboard() {
     return `${yrs}y ${mos}m`;
   };
 
-  // Demo Data
-  const isDemoActive =
-    seedSuccess ||
-    accounts.some((a) => {
-      const name = a.account_name?.toLowerCase() || "";
-
-      return (
-        name.includes("regalia") ||
-        name.includes("millennia") ||
-        name.includes("sbi car loan")
-      );
-    });
+  // Demo Data - strictly only active in guest mode or when sample data was just seeded
+  const isDemoActive = isGuest || seedSuccess;
 
   return (
     <div className="w-full max-w-full space-y-6 sm:space-y-8 overflow-x-hidden">
@@ -373,31 +399,29 @@ export default function Dashboard() {
 
               <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                TransUnion CIBIL India Assessment
+                {t("dashboard.cibilAssessment", "TransUnion CIBIL India Assessment")}
               </span>
 
               {isDemoActive && (
                 <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                   <Database className="w-3 h-3 text-amber-400" />
-                  DEMO SIMULATION DATA
+                  {t("dashboard.demoDataBadge", "DEMO SIMULATION DATA")}
                 </span>
               )}
 
               {seedSuccess && (
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-fade-in">
-                  Sample Indian CIBIL profile loaded!
+                  {t("dashboard.sampleDataLoaded", "Sample Indian CIBIL profile loaded!")}
                 </span>
               )}
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Welcome back, {user?.name || "Member"}
+              {t("dashboard.welcome", "Welcome back")}, {user?.name || "Member"}
             </h1>
 
-            <p className="text-sm text-slate-400 mt-1 max-w-xl">
-              Here is your Indian credit health overview,
-              utilization tracking, and AI-powered
-              recommendations to optimize your credit health.
+            <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl leading-relaxed">
+              {t("dashboard.subtitle", "Here is your Indian credit health overview, utilization tracking, and AI-powered recommendations.")}
             </p>
           </div>
 
@@ -411,8 +435,8 @@ export default function Dashboard() {
             >
               <Database className="w-4 h-4 mr-1.5 text-indigo-400" />
               {seeding
-                ? "Loading..."
-                : "Load Demo CIBIL Data"}
+                ? t("dashboard.loadingDemoData", "Loading...")
+                : t("dashboard.loadDemoData", "Load Demo CIBIL Data")}
             </button>
 
             <Link
@@ -420,7 +444,7 @@ export default function Dashboard() {
               className="flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-600/30 transition-all"
             >
               <Sparkles className="w-4 h-4 mr-1.5 text-amber-300" />
-              Ask AI Advisor
+              {t("dashboard.askAIAdvisor", "Ask AI Advisor")}
             </Link>
           </div>
         </div>

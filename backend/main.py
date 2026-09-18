@@ -1,5 +1,6 @@
 import os
 import sys
+import secrets
 
 # Ensure backend directory is in sys.path when imported from repo root (e.g. Vercel)
 backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,7 +24,7 @@ from models import (
     Recommendation,
 )
 
-from schemas import UserCreate, UserLogin, UserResponse
+from schemas import UserCreate, UserLogin, UserResponse, FirebaseLoginRequest
 from credit_schemas import (
     CreditProfileCreate,
     CreditProfileResponse,
@@ -71,9 +72,27 @@ from auth import hash_password, verify_password, create_access_token
 from dependencies import get_current_user
 
 
+def ensure_schema_migrations():
+    """Ensure newly added columns like phone_number exist in existing databases."""
+    try:
+        with engine.connect() as conn:
+            if engine.dialect.name == "sqlite":
+                result = conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()
+                cols = [row[1] for row in result]
+                if "phone_number" not in cols:
+                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN phone_number VARCHAR(50)")
+                    conn.commit()
+            elif engine.dialect.name == "postgresql":
+                conn.exec_driver_sql("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50)")
+                conn.commit()
+    except Exception as e:
+        print(f"Database schema migration notice: {e}")
+
+
 # Auto-create all database tables
 try:
     Base.metadata.create_all(bind=engine)
+    ensure_schema_migrations()
 except Exception as e:
     # Will retry on application startup if database was connecting
     pass
@@ -92,6 +111,7 @@ def on_startup():
     """Ensure database tables exist on application startup."""
     try:
         Base.metadata.create_all(bind=engine)
+        ensure_schema_migrations()
     except Exception as e:
         print(f"Database initialization warning on startup: {e}")
 
@@ -180,7 +200,8 @@ def register(
     new_user = User(
         name=user.name,
         email=user.email,
-        password_hash=hashed_password
+        password_hash=hashed_password,
+        phone_number=user.phone_number
     )
 
     db.add(new_user)
@@ -228,7 +249,62 @@ def login(
         "user": {
             "id": existing_user.id,
             "name": existing_user.name,
-            "email": existing_user.email
+            "email": existing_user.email,
+            "phone_number": existing_user.phone_number
+        }
+    }
+
+
+@api_router.post("/auth/firebase-login")
+@app.post("/auth/firebase-login")
+def firebase_login(
+    payload: FirebaseLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Authenticate/synchronize a user verified via Firebase (Google or Phone OTP).
+    Issues standard JWT token and creates/updates local DB profile seamlessly.
+    """
+    identifier_email = payload.email
+    if not identifier_email or identifier_email.strip() == "":
+        if payload.phone_number:
+            clean_phone = payload.phone_number.replace("+", "").replace(" ", "").replace("-", "")
+            identifier_email = f"{clean_phone}@phone.auth"
+        else:
+            identifier_email = f"{payload.firebase_uid}@firebase.auth"
+
+    user = db.query(User).filter(User.email == identifier_email).first()
+    if not user:
+        user_name = payload.name or "Credit Member"
+        random_pwd = f"fb_{payload.firebase_uid}_{secrets.token_hex(8)}"
+        hashed_pwd = hash_password(random_pwd)
+        user = User(
+            name=user_name,
+            email=identifier_email,
+            password_hash=hashed_pwd,
+            phone_number=payload.phone_number
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    elif payload.phone_number and not user.phone_number:
+        user.phone_number = payload.phone_number
+        db.commit()
+        db.refresh(user)
+
+    access_token = create_access_token(
+        data={"sub": str(user.id)}
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "message": "Firebase login successful",
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "phone_number": user.phone_number
         }
     }
 

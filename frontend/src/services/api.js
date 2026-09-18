@@ -9,6 +9,12 @@ const api = axios.create({
 // Request interceptor to attach JWT token
 api.interceptors.request.use(
   (config) => {
+    const isGuest = localStorage.getItem("isGuest") === "true";
+    if (isGuest) {
+      // Guest mode never sends an authentication token
+      delete config.headers.Authorization;
+      return config;
+    }
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -22,11 +28,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const isGuest = localStorage.getItem("isGuest") === "true";
+    if (isGuest) {
+      // Never auto-redirect guest mode on 401 errors
+      return Promise.reject(error);
+    }
     if (error.response && error.response.status === 401) {
       // Don't auto-redirect if we're attempting to login
       const isLoginRequest =
         error.config?.url?.includes("/auth/login") ||
-        error.config?.url?.includes("/api/auth/login");
+        error.config?.url?.includes("/api/auth/login") ||
+        error.config?.url?.includes("/auth/firebase-login");
       if (!isLoginRequest) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -50,8 +62,14 @@ export const authAPI = {
     });
     return response.data;
   },
-  register: async (name, email, password) => {
-    const response = await api.post("/api/auth/register", { name, email, password });
+  register: async (name, email, password, phone_number = null) => {
+    const payload = { name, email, password };
+    if (phone_number) payload.phone_number = phone_number;
+    const response = await api.post("/api/auth/register", payload);
+    return response.data;
+  },
+  firebaseLogin: async (data) => {
+    const response = await api.post("/api/auth/firebase-login", data);
     return response.data;
   },
   getMe: async () => {

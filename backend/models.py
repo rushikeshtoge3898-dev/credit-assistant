@@ -34,6 +34,11 @@ class User(Base):
         nullable=False
     )
 
+    phone_number = Column(
+        String(50),
+        nullable=True
+    )
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow

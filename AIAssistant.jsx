@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import api, { aiAPI, recommendationsAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { guestData } from "../services/guestData";
 import {
   Sparkles,
   Send,
@@ -22,11 +25,16 @@ import {
 } from "lucide-react";
 
 export default function AIAssistant() {
+  const { isGuest } = useAuth();
+  const { currentLanguage, t } = useLanguage();
+
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content:
-        "Hello! I am your **AI Credit & Financial Advisor**, specialized in the Indian banking and CIBIL credit scoring ecosystem.\n\nI have access to your credit profile, debt-to-income ratio, and card utilization. Ask me anything about boosting your score, clearing debt, or loan eligibility!",
+      content: t(
+        "ai.welcomeMessage",
+        "Hello! I am your **AI Credit & Financial Advisor**, specialized in the Indian banking and CIBIL credit scoring ecosystem.\n\nI have access to your credit profile, debt-to-income ratio, and card utilization. Ask me anything about boosting your score, clearing debt, or loan eligibility!"
+      ),
       suggestions: [
         "How can I reach a 750+ CIBIL score?",
         "How does credit utilization affect my approval chances?",
@@ -39,7 +47,7 @@ export default function AIAssistant() {
   const [analyzing, setAnalyzing] = useState(false);
   const [diagnostic, setDiagnostic] = useState(null);
   const [dbRecs, setDbRecs] = useState([]);
-  const [activeTab, setActiveTab] = useState("all"); // "all" | "chat" | "diagnostic"
+  const [activeTab, setActiveTab] = useState("chat"); // "chat" | "diagnostic"
   const [error, setError] = useState("");
   const messagesEndRef = useRef(null);
 
@@ -53,6 +61,34 @@ export default function AIAssistant() {
 
   const loadInitialData = async () => {
     try {
+      if (isGuest) {
+        setDbRecs(guestData.getGuestRecommendations());
+        const guestProfile = guestData.getGuestProfile();
+        setDiagnostic({
+          summary: "Simulated guest profile demonstrates active Indian credit tradelines with clean repayment history and moderate card utilization.",
+          health_grade: "Good",
+          cibil_health_score: guestProfile?.credit_score ?? null,
+          key_positive_factors: [
+            "100% on-time repayment history across active accounts",
+            "Low debt-to-income leverage within safe limits",
+            "No recent defaults or charge-offs reported to bureaus"
+          ],
+          critical_risk_factors: [
+            "Monitor revolving card balance to maintain sub-30% utilization"
+          ],
+          immediate_action_items: [
+            "Clear credit card dues before statement billing date",
+            "Set auto-debit on total bill amount"
+          ],
+          long_term_strategy: [
+            "Maintain credit accounts for at least 3+ years to establish seasoned history",
+            "Diversify credit mix with a secured vehicle or home loan when needed"
+          ],
+          educational_disclaimer: "Educational credit advisory model based on CIBIL TransUnion scoring methodology."
+        });
+        return;
+      }
+
       // 1. Load persistent recommendations from DB
       try {
         const recList = await recommendationsAPI.getRecommendations();
@@ -68,7 +104,7 @@ export default function AIAssistant() {
           setDiagnostic({
             summary: res.data.summary,
             health_grade: res.data.cibil_health_status || "Good",
-            cibil_health_score: 750,
+            cibil_health_score: res.data.cibil_health_score ?? null,
             key_positive_factors: res.data.strengths || [
               "Consistently on-time payment track record across tradelines",
               "Balanced debt-to-income leverage within normal limits"
@@ -97,32 +133,58 @@ export default function AIAssistant() {
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+  }, [isGuest]);
 
   const handleRunDiagnostic = async () => {
     setAnalyzing(true);
     setError("");
     try {
       let analysisData;
-      try {
-        analysisData = await aiAPI.analyzeCredit();
-      } catch (e) {
-        const fb = await api.post("/api/ai/analyze-credit");
-        analysisData = fb.data;
+      if (isGuest) {
+        const guestProfile = guestData.getGuestProfile();
+        analysisData = {
+          summary: "Guest profile shows an active HDFC credit card with 29% utilization and an SBI auto loan. Payment behavior is pristine with zero missed dues.",
+          health_grade: "Good",
+          cibil_health_score: guestProfile?.credit_score ?? null,
+          key_positive_factors: [
+            "Clean payment track record with 0 defaults",
+            "Utilization kept safely below the 30% threshold",
+            "Healthy credit mix of revolving and installment debt"
+          ],
+          critical_risk_factors: [
+            "Avoid opening multiple new loan or card applications simultaneously"
+          ],
+          immediate_action_items: [
+            "Keep credit utilization under 20% for faster score gains",
+            "Request annual credit report check for inaccuracies"
+          ],
+          long_term_strategy: [
+            "Maintain oldest credit card to build average credit age past 5 years",
+            "Increase credit limit without increasing spending to lower utilization"
+          ],
+          educational_disclaimer: "Educational estimate based on CIBIL TransUnion scoring methodology."
+        };
+      } else {
+        try {
+          analysisData = await aiAPI.analyzeCredit();
+        } catch (e) {
+          const fb = await api.post("/api/ai/analyze-credit");
+          analysisData = fb.data;
+        }
+
+        // Refresh DB recommendations
+        try {
+          const recList = await recommendationsAPI.getRecommendations();
+          setDbRecs(recList);
+        } catch (e) {}
       }
 
       setDiagnostic(analysisData);
 
-      // Refresh DB recommendations
-      try {
-        const recList = await recommendationsAPI.getRecommendations();
-        setDbRecs(recList);
-      } catch (e) {}
-
       // Add AI report announcement in chat
       const summaryMsg = {
         role: "assistant",
-        content: `**New AI Credit Diagnostic Complete!**\n\n- **Health Grade**: ${analysisData.health_grade}\n- **Summary**: ${analysisData.summary}\n\nReview your positive factors, risk items, and long-term roadmap on the right panel. Ask me below if you need step-by-step guidance!`,
+        content: `**New AI Credit Diagnostic Complete!**\n\n- **Health Grade**: ${analysisData.health_grade}\n- **Summary**: ${analysisData.summary}\n\nReview your positive factors, risk items, and long-term roadmap on the diagnostic panel. Ask me below if you need step-by-step guidance!`,
         suggestions: analysisData.immediate_action_items?.slice(0, 3) || [
           "How do I clear card balance fastest?",
           "What is the best way to handle loans?"
@@ -170,11 +232,12 @@ export default function AIAssistant() {
 
       let resData;
       try {
-        resData = await aiAPI.chat(textToSend, history);
+        resData = await aiAPI.chat(textToSend, history, currentLanguage);
       } catch (err) {
         const fallbackRes = await api.post("/ai/chat", {
           message: textToSend,
           history: history,
+          language: currentLanguage,
         });
         resData = fallbackRes.data;
       }
@@ -230,10 +293,10 @@ export default function AIAssistant() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <Sparkles className="w-7 h-7 text-indigo-400" />
-            AI Credit Advisor
+            {t("ai.title", "AI Credit Advisor")}
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Powered by Google Gemini with domain awareness of Indian banking, RBI norms, and CIBIL scoring.
+            {t("ai.subtitle", "Powered by Google Gemini with domain awareness of Indian banking, RBI norms, and CIBIL scoring.")}
           </p>
         </div>
 
@@ -243,7 +306,7 @@ export default function AIAssistant() {
           className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer disabled:opacity-60"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${analyzing ? "animate-spin" : ""}`} />
-          <span>{analyzing ? "Analyzing Credit Data..." : "Run AI Credit Diagnostic"}</span>
+          <span>{analyzing ? t("ai.analyzing", "Analyzing Credit Data...") : t("ai.runDiagnostic", "Run AI Credit Diagnostic")}</span>
         </button>
       </div>
 
@@ -254,10 +317,34 @@ export default function AIAssistant() {
         </div>
       )}
 
+      {/* Mobile Tab Switcher (Visible on small screens) */}
+      <div className="flex lg:hidden bg-slate-900 border border-slate-800 rounded-2xl p-1 shadow-md">
+        <button
+          onClick={() => setActiveTab("chat")}
+          className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+            activeTab === "chat"
+              ? "bg-indigo-600 text-white shadow"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          {t("ai.chatTab", "Interactive Chat")}
+        </button>
+        <button
+          onClick={() => setActiveTab("diagnostic")}
+          className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+            activeTab === "diagnostic"
+              ? "bg-indigo-600 text-white shadow"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          {t("ai.diagnosticTab", "Diagnostic Report")}
+        </button>
+      </div>
+
       {/* Main Grid: Chat Assistant (A) + Comprehensive AI Diagnostic Panel (B - G) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Chat Assistant (A) */}
-        <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl flex flex-col h-[700px] shadow-2xl relative overflow-hidden">
+        <div className={`lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl flex flex-col h-[650px] sm:h-[700px] shadow-2xl relative overflow-hidden ${activeTab === "diagnostic" ? "hidden lg:flex" : "flex"}`}>
           {/* Chat Header */}
           <div className="px-5 py-3.5 bg-slate-950/60 border-b border-slate-800/80 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2 text-slate-300 font-semibold">
@@ -356,7 +443,7 @@ export default function AIAssistant() {
         </div>
 
         {/* Right Column: AI Diagnostic Report Panel (C - G) */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className={`lg:col-span-5 space-y-6 ${activeTab === "chat" ? "hidden lg:block" : "block"}`}>
           <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             {/* Header & Grade */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">

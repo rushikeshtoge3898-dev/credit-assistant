@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import api, { accountsAPI, paymentsAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { guestData } from "../services/guestData";
 import {
   CreditCard,
   Plus,
@@ -16,6 +19,9 @@ import {
 } from "lucide-react";
 
 export default function Accounts() {
+  const { isGuest } = useAuth();
+  const { t } = useLanguage();
+
   const [accounts, setAccounts] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +54,13 @@ export default function Accounts() {
     setLoading(true);
     setError("");
     try {
+      if (isGuest) {
+        setAccounts(guestData.getGuestAccounts());
+        setPayments(guestData.getGuestPayments());
+        setLoading(false);
+        return;
+      }
+
       let accData = [];
       let payData = [];
 
@@ -78,6 +91,13 @@ export default function Accounts() {
   const handleSeedFromAccounts = async () => {
     setSeeding(true);
     try {
+      if (isGuest) {
+        guestData.resetGuestData();
+        await fetchData();
+        setSeeding(false);
+        return;
+      }
+
       await api.post("/api/credit/seed-sample-data");
       await fetchData();
     } catch (e) {
@@ -94,7 +114,7 @@ export default function Accounts() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [isGuest]);
 
   const resetAccountForm = () => {
     setAccountName("");
@@ -142,6 +162,18 @@ export default function Accounts() {
     };
 
     try {
+      if (isGuest) {
+        if (editingAccount) {
+          guestData.updateGuestAccount(editingAccount.id, payload);
+        } else {
+          guestData.createGuestAccount(payload);
+        }
+        setShowAddModal(false);
+        resetAccountForm();
+        fetchData();
+        return;
+      }
+
       if (editingAccount) {
         // Edit flow: PUT /api/accounts/{id}
         try {
@@ -171,6 +203,12 @@ export default function Accounts() {
   const handleDeleteAccount = async (id) => {
     if (!window.confirm("Are you sure you want to remove this account?")) return;
     try {
+      if (isGuest) {
+        guestData.deleteGuestAccount(id);
+        setAccounts(accounts.filter((a) => a.id !== id));
+        return;
+      }
+
       try {
         await accountsAPI.deleteAccount(id);
       } catch (err) {
@@ -193,6 +231,14 @@ export default function Accounts() {
     };
 
     try {
+      if (isGuest) {
+        guestData.createGuestPayment(payload);
+        setShowPaymentModal(false);
+        setPayAmount("");
+        fetchData();
+        return;
+      }
+
       try {
         await paymentsAPI.createPayment(payload);
       } catch (err) {

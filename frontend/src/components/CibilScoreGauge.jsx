@@ -1,51 +1,68 @@
-export default function CibilScoreGauge({ score = 720 }) {
+import { useLanguage } from "../context/LanguageContext";
+
+export default function CibilScoreGauge({ score = null }) {
+  const { t } = useLanguage();
   const minScore = 300;
   const maxScore = 900;
-  const clampedScore = Math.max(minScore, Math.min(maxScore, score || 700));
+
+  const hasScore = typeof score === "number" && !isNaN(score) && score >= minScore;
+  const clampedScore = hasScore ? Math.max(minScore, Math.min(maxScore, score)) : null;
 
   // Percentage from 0 to 100 for gauge representation
-  const percentage = ((clampedScore - minScore) / (maxScore - minScore)) * 100;
+  const percentage = hasScore ? ((clampedScore - minScore) / (maxScore - minScore)) * 100 : 0;
 
   // Determine CIBIL Band
-  let tier = "Good";
-  let color = "text-emerald-400";
-  let bgColor = "bg-emerald-500";
-  let gradient = "from-emerald-500 to-teal-400";
-  let statusText = "You have a prime credit profile. High approval probability for loans and cards.";
+  let tier = t("dashboard.notAvailable", "Not Available");
+  let color = "text-slate-400";
+  let bgColor = "bg-slate-600";
+  let statusText = t(
+    "dashboard.recordScorePrompt",
+    "Add your first score snapshot to unlock trend tracking and tailored tier advice."
+  );
 
-  if (clampedScore >= 750) {
-    tier = "Excellent";
-    color = "text-emerald-400";
-    bgColor = "bg-emerald-500";
-    gradient = "from-emerald-400 to-emerald-600";
-    statusText = "Excellent! You qualify for the best interest rates and premium credit cards in India.";
-  } else if (clampedScore >= 700) {
-    tier = "Good";
-    color = "text-teal-400";
-    bgColor = "bg-teal-500";
-    gradient = "from-teal-400 to-emerald-500";
-    statusText = "Good! Lenders view you favorably with minimal risk of rejection.";
-  } else if (clampedScore >= 650) {
-    tier = "Fair";
-    color = "text-amber-400";
-    bgColor = "bg-amber-500";
-    gradient = "from-amber-400 to-amber-600";
-    statusText = "Fair. You may face moderate interest rates or lower credit limits.";
-  } else {
-    tier = "Needs Attention";
-    color = "text-rose-400";
-    bgColor = "bg-rose-500";
-    gradient = "from-rose-500 to-rose-700";
-    statusText = "High credit risk. Focus on clearing dues and keeping card balances low.";
+  if (hasScore) {
+    if (clampedScore >= 750) {
+      tier = t("dashboard.tierExcellent", "Excellent");
+      color = "text-emerald-400";
+      bgColor = "bg-emerald-500";
+      statusText = t(
+        "dashboard.statusExcellent",
+        "Excellent! You qualify for the best interest rates and premium credit cards in India."
+      );
+    } else if (clampedScore >= 700) {
+      tier = t("dashboard.tierGood", "Good");
+      color = "text-teal-400";
+      bgColor = "bg-teal-500";
+      statusText = t(
+        "dashboard.statusGood",
+        "Good! Lenders view you favorably with minimal risk of rejection."
+      );
+    } else if (clampedScore >= 650) {
+      tier = t("dashboard.tierFair", "Fair");
+      color = "text-amber-400";
+      bgColor = "bg-amber-500";
+      statusText = t(
+        "dashboard.statusFair",
+        "Fair. You may face moderate interest rates or lower credit limits."
+      );
+    } else {
+      tier = t("dashboard.tierNeedsAttention", "Needs Attention");
+      color = "text-rose-400";
+      bgColor = "bg-rose-500";
+      statusText = t(
+        "dashboard.statusPoor",
+        "High credit risk. Focus on clearing dues and keeping card balances low."
+      );
+    }
   }
 
   // Calculate rotation for dial needle: 180 degrees total (-90 to +90)
-  const rotation = -90 + (percentage / 100) * 180;
+  const rotation = hasScore ? -90 + (percentage / 100) * 180 : -90;
 
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-between relative overflow-hidden shadow-xl shadow-slate-950/50">
       <div className="w-full flex items-center justify-between text-xs text-slate-400 font-medium">
-        <span>CIBIL TransUnion Scale</span>
+        <span>{t("dashboard.cibilScale", "CIBIL TransUnion Scale")}</span>
         <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">300 - 900</span>
       </div>
 
@@ -99,16 +116,18 @@ export default function CibilScoreGauge({ score = 720 }) {
           />
 
           {/* Active Filled Arc */}
-          <path
-            d="M 20 100 A 80 80 0 0 1 180 100"
-            fill="none"
-            stroke="url(#gaugeGradient)"
-            strokeWidth="16"
-            strokeLinecap="round"
-            strokeDasharray="251.3"
-            strokeDashoffset={251.3 - (percentage / 100) * 251.3}
-            className="transition-all duration-1000 ease-out"
-          />
+          {hasScore && (
+            <path
+              d="M 20 100 A 80 80 0 0 1 180 100"
+              fill="none"
+              stroke="url(#gaugeGradient)"
+              strokeWidth="16"
+              strokeLinecap="round"
+              strokeDasharray="251.3"
+              strokeDashoffset={251.3 - (percentage / 100) * 251.3}
+              className="transition-all duration-1000 ease-out"
+            />
+          )}
 
           <defs>
             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -121,8 +140,8 @@ export default function CibilScoreGauge({ score = 720 }) {
 
           {/* Needle / Pointer */}
           <g transform={`translate(100, 100) rotate(${rotation})`}>
-            <polygon points="-3,0 3,0 0,-70" fill="#f8fafc" />
-            <circle cx="0" cy="0" r="7" fill="#6366f1" stroke="#ffffff" strokeWidth="2" />
+            <polygon points="-3,0 3,0 0,-70" fill={hasScore ? "#f8fafc" : "#64748b"} />
+            <circle cx="0" cy="0" r="7" fill={hasScore ? "#6366f1" : "#475569"} stroke="#ffffff" strokeWidth="2" />
           </g>
         </svg>
 
@@ -133,12 +152,12 @@ export default function CibilScoreGauge({ score = 720 }) {
 
       {/* Numerical Score Display */}
       <div className="mt-4 text-center">
-        <div className="text-4xl font-extrabold tracking-tight text-white flex items-center justify-center gap-2">
-          <span>{clampedScore}</span>
+        <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white flex items-center justify-center gap-2">
+          <span>{hasScore ? clampedScore : t("dashboard.notAvailable", "Not Available")}</span>
         </div>
         <div className="mt-1 flex items-center justify-center gap-2">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${color} bg-slate-800 border border-slate-700`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${bgColor} mr-1.5 animate-pulse`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${bgColor} mr-1.5 ${hasScore ? "animate-pulse" : ""}`} />
             {tier}
           </span>
         </div>
@@ -149,7 +168,7 @@ export default function CibilScoreGauge({ score = 720 }) {
 
       {/* Target marker info */}
       <div className="mt-4 pt-3 border-t border-slate-800/80 w-full flex items-center justify-between text-xs text-slate-400">
-        <span>Golden CIBIL Target:</span>
+        <span>{t("dashboard.goldenTarget", "Golden CIBIL Target:")}</span>
         <span className="font-semibold text-emerald-400">750+ (Prime)</span>
       </div>
     </div>

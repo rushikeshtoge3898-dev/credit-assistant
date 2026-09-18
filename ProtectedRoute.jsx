@@ -2,7 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute() {
-  const { user, loading } = useAuth();
+  const { user, isGuest, loading } = useAuth();
 
   if (loading) {
     return (
@@ -13,7 +13,8 @@ export default function ProtectedRoute() {
     );
   }
 
-  if (!user) {
+  // Allow access if user is authenticated OR guest mode is active
+  if (!isGuest && !user) {
     return <Navigate to="/login" replace />;
   }
 
