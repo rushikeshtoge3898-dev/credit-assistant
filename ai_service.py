@@ -235,8 +235,9 @@ def generate_ai_chat_response(
 MANDATORY LANGUAGE INSTRUCTION (STRICT PRIORITY):
 - The user has selected MARATHI (मराठी).
 - You MUST respond ENTIRELY in fluent, grammatically correct Marathi (मराठी) written in Devanagari script.
-- Even if the user asks their question in English or Roman script, you MUST still respond ENTIRELY in Marathi (मराठी).
-- Do NOT respond in English under any circumstances unless the user explicitly says: "Respond in English".
+- The user may write in authentic Marathi (Devanagari script) OR in Romanized Marathi / Latin script / Hinglish / Maranglish (e.g., "maza credit score kasa improve karu?", "credit card bill kadhi bharayche?", "cibil score kasa check karaycha?").
+- You MUST recognize Romanized Marathi queries, understand the user's intent, and respond ENTIRELY in authentic Marathi (मराठी) in Devanagari script.
+- Do NOT respond in English or Latin alphabet under any circumstances unless the user explicitly asks: "Respond in English".
 - Provide all 3 follow-up suggestions in Marathi (मराठी) in the format: [SUGGESTIONS: प्रश्न १ | प्रश्न २ | प्रश्न ३]
 - Use natural Marathi financial terms (उदा. सिबिल स्कोर, क्रेडिट मर्यादा, ईएमआय, कर्ज नियोजन).
 """
@@ -245,8 +246,9 @@ MANDATORY LANGUAGE INSTRUCTION (STRICT PRIORITY):
 MANDATORY LANGUAGE INSTRUCTION (STRICT PRIORITY):
 - The user has selected HINDI (हिंदी).
 - You MUST respond ENTIRELY in fluent, grammatically correct Hindi (हिंदी) written in Devanagari script.
-- Even if the user asks their question in English or Roman script, you MUST still respond ENTIRELY in Hindi (हिंदी).
-- Do NOT respond in English under any circumstances unless the user explicitly says: "Respond in English".
+- The user may write in authentic Hindi (Devanagari script) OR in Romanized Hindi / Latin script / Hinglish (e.g., "mera credit score kaise improve karu?", "credit card bill kab bharna chahiye?", "cibil score kaise badhaye?").
+- You MUST recognize Romanized Hindi queries, understand the user's intent, and respond ENTIRELY in authentic Hindi (हिंदी) in Devanagari script.
+- Do NOT respond in English or Latin alphabet under any circumstances unless the user explicitly asks: "Respond in English".
 - Provide all 3 follow-up suggestions in Hindi (हिंदी) in the format: [SUGGESTIONS: प्रश्न १ | प्रश्न २ | प्रश्न ३]
 - Use natural Hindi financial terms (उदा. सिबिल स्कोर, क्रेडिट लिमिट, ईएमआई, ऋण प्रबंधन).
 """
@@ -255,6 +257,7 @@ MANDATORY LANGUAGE INSTRUCTION (STRICT PRIORITY):
 MANDATORY LANGUAGE INSTRUCTION:
 - The user has selected ENGLISH.
 - Respond in clear, helpful, professional English.
+- If the user types Romanized Hindi or Romanized Marathi, still explain the answer clearly and concisely in English.
 - Provide all 3 follow-up suggestions in English in the format: [SUGGESTIONS: Question 1 | Question 2 | Question 3]
 """
 
@@ -262,7 +265,7 @@ MANDATORY LANGUAGE INSTRUCTION:
     # GEMINI PROMPT
     # -----------------------------------------------------
     prompt = f"""
-You are CreditGenius, a helpful AI financial & credit advisor for users in India.
+You are Credit Assistant, a helpful AI financial & credit advisor for users in India.
 
 {lang_instructions}
 
@@ -377,12 +380,12 @@ def rule_based_chat_response(
     is_hi = lang == "hi"
 
     # 1. GREETINGS
-    greetings_words = ["hi", "hello", "hey", "namaste", "नमस्कार", "नमस्ते", "हॅलो", "हाय", "good morning", "good evening"]
+    greetings_words = ["hi", "hello", "hey", "namaste", "namaskar", "नमस्कार", "नमस्ते", "हॅलो", "हाय", "good morning", "good evening"]
     if any(lowered.startswith(w) or lowered == w for w in greetings_words):
         if is_mr:
             return {
                 "response": (
-                    "नमस्कार! 🙏 मी तुमचा **CreditGenius** आर्थिक सहाय्यक आहे.\n\n"
+                    "नमस्कार! 🙏 मी तुमचा **Credit Assistant** आर्थिक सहाय्यक आहे.\n\n"
                     "मी तुम्हाला खालील विषयांवर मार्गदर्शन करू शकतो:\n"
                     "- **CIBIL क्रेडिट स्कोर** वाढवण्याच्या पद्धती\n"
                     "- **क्रेडिट कार्ड वापर** (क्रेडिट युटिलायझेशन) ३०% च्या खाली ठेवणे\n"
@@ -399,7 +402,7 @@ def rule_based_chat_response(
         elif is_hi:
             return {
                 "response": (
-                    "नमस्ते! 🙏 मैं आपका **CreditGenius** वित्तीय सलाहकार हूँ।\n\n"
+                    "नमस्ते! 🙏 मैं आपका **Credit Assistant** वित्तीय सलाहकार हूँ।\n\n"
                     "मैं आपको इन महत्वपूर्ण विषयों में सहायता कर सकता हूँ:\n"
                     "- **सिबिल क्रेडिट स्कोर** सुधारने के सटीक उपाय\n"
                     "- **क्रेडिट कार्ड उपयोग** (यूटिलाइज़ेशन) को ३०% से कम रखना\n"
@@ -416,7 +419,7 @@ def rule_based_chat_response(
         else:
             return {
                 "response": (
-                    "Hello! 👋 I am your **CreditGenius** credit & financial advisor.\n\n"
+                    "Hello! 👋 I am your **Credit Assistant** credit & financial advisor.\n\n"
                     "I can guide you on:\n"
                     "- Strategies to boost your **CIBIL credit score**\n"
                     "- Keeping **credit card utilization** under the safe 30% ceiling\n"
@@ -432,7 +435,7 @@ def rule_based_chat_response(
             }
 
     # 2. CREDIT UTILIZATION
-    if any(w in lowered for w in ["utilization", "credit card", "limit", "युटिलायझेशन", "मर्यादा", "यूटिलाइज़ेशन", "क्रेडिट कार्ड"]):
+    if any(w in lowered for w in ["utilization", "credit card", "limit", "card", "युटिलायझेशन", "मर्यादा", "यूटिलाइज़ेशन", "क्रेडिट कार्ड", "maryada", "seema", "kharch"]):
         if is_mr:
             return {
                 "response": (
@@ -482,7 +485,7 @@ def rule_based_chat_response(
             }
 
     # 3. CREDIT SCORE IMPROVEMENT
-    if any(w in lowered for w in ["score", "improve", "boost", "increase", "cibil", "स्कोर", "सुधार", "वाढवणे", "बढ़ाना"]):
+    if any(w in lowered for w in ["score", "improve", "boost", "increase", "cibil", "स्कोर", "सुधार", "वाढवणे", "बढ़ाना", "kasa", "kaise", "sudhar", "vadhva", "vadhvu", "badhaye", "badhana", "karnar", "karu", "kare", "karna"]):
         if is_mr:
             score_text = f"तुमचा सध्याचा नोंदवलेला CIBIL स्कोर **{score}** आहे." if score is not None else "तुमच्या खात्यात सध्या कोणताही स्कोअर **नोंदवलेला नाही**."
             return {
@@ -539,7 +542,7 @@ def rule_based_chat_response(
             }
 
     # 4. LOANS & EMIS
-    if any(w in lowered for w in ["loan", "emi", "debt", "कर्ज", "ऋण", "हप्ता", "व्याज"]):
+    if any(w in lowered for w in ["loan", "emi", "debt", "कर्ज", "ऋण", "हप्ता", "व्याज", "karj", "karja", "karza", "feda", "chukavne", "chukaye", "hafta", "vyaj", "byaj"]):
         if is_mr:
             return {
                 "response": (
@@ -590,7 +593,7 @@ def rule_based_chat_response(
     if is_mr:
         return {
             "response": (
-                f"मी **CreditGenius** आहे. तुम्ही विचारलेल्या प्रश्नाबद्दल:\n\n"
+                f"मी **Credit Assistant** आहे. तुम्ही विचारलेल्या प्रश्नाबद्दल:\n\n"
                 f"भारतामध्ये CIBIL स्कोर ३०० ते ९०० दरम्यान मोजला जातो. ७५० पेक्षा जास्त स्कोअर असलेल्या ग्राहकांना बँका सर्वात कमी व्याजदरावर आणि त्वरित कर्ज मंजूर करतात.\n\n"
                 f"**महत्त्वाच्या आर्थिक टिप्स:**\n"
                 f"- सर्व क्रेडिट कार्ड आणि कर्जाचे हफ्ते वेळेवर भरा.\n"
@@ -607,7 +610,7 @@ def rule_based_chat_response(
     elif is_hi:
         return {
             "response": (
-                f"मैं **CreditGenius** हूँ। आपके प्रश्न के संबंध में:\n\n"
+                f"मैं **Credit Assistant** हूँ। आपके प्रश्न के संबंध में:\n\n"
                 f"भारत में सिबिल स्कोर ३०० से ९०० के बीच आंका जाता है। ७५० से अधिक स्कोर होने पर बैंक सबसे कम ब्याज दरों पर और बिना किसी परेशानी के तुरंत लोन स्वीकृत करते हैं।\n\n"
                 f"**महत्वपूर्ण वित्तीय सुझाव:**\n"
                 f"- सभी ईएमआई और क्रेडिट कार्ड बिल समय पर चुकाएं।\n"
@@ -624,7 +627,7 @@ def rule_based_chat_response(
     else:
         return {
             "response": (
-                f"I am **CreditGenius**, your Indian credit & financial advisory assistant.\n\n"
+                f"I am **Credit Assistant**, your Indian credit & financial advisory assistant.\n\n"
                 f"In India, CIBIL scores range from 300 to 900. Maintaining a score of **750+** qualifies you for the lowest loan interest rates and swift pre-approvals across major banks.\n\n"
                 f"**Top financial health habits:**\n"
                 f"- Maintain 100% on-time payment track record across all accounts.\n"

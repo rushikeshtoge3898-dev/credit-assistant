@@ -245,10 +245,10 @@ export default function Accounts() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <CreditCard className="w-7 h-7 text-indigo-400" />
-            Credit Accounts & Loans
+            {t("accounts.title", "Credit Accounts & Loans")}
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Manage your credit cards, personal loans, home loans, and monthly payment track.
+            {t("accounts.subtitle", "Manage your credit cards, personal loans, home loans, and monthly payment track.")}
           </p>
         </div>
 
@@ -257,7 +257,7 @@ export default function Accounts() {
             onClick={() => setShowPaymentModal(true)}
             className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center gap-1.5 cursor-pointer"
           >
-            <Clock className="w-4 h-4 text-emerald-400" /> Log Payment
+            <Clock className="w-4 h-4 text-emerald-400" /> {t("accounts.logPayment", "Log Payment")}
           </button>
           <button
             onClick={() => {
@@ -266,7 +266,7 @@ export default function Accounts() {
             }}
             className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Add Credit Account
+            <Plus className="w-4 h-4" /> {t("accounts.addAccount", "Add Credit Account")}
           </button>
         </div>
       </div>
@@ -274,19 +274,19 @@ export default function Accounts() {
       {/* Aggregate Overview Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
-          <div className="text-xs text-slate-400">Total Outstanding Balance</div>
+          <div className="text-xs text-slate-400">{t("accounts.totalOutstanding", "Total Outstanding Balance")}</div>
           <div className="text-xl font-bold text-white mt-1">
             ₹{totalOutstanding.toLocaleString("en-IN")}
           </div>
         </div>
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
-          <div className="text-xs text-slate-400">Total Sanctioned Limit</div>
+          <div className="text-xs text-slate-400">{t("accounts.totalSanctionedLimit", "Total Sanctioned Limit")}</div>
           <div className="text-xl font-bold text-emerald-400 mt-1">
             ₹{totalLimit.toLocaleString("en-IN")}
           </div>
         </div>
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
-          <div className="text-xs text-slate-400">Monthly EMI Obligations</div>
+          <div className="text-xs text-slate-400">{t("accounts.monthlyEmi", "Monthly EMI Obligations")}</div>
           <div className="text-xl font-bold text-indigo-400 mt-1">
             ₹{totalEmi.toLocaleString("en-IN")} / mo
           </div>
@@ -296,7 +296,7 @@ export default function Accounts() {
       {/* Accounts Grid */}
       <div>
         <h2 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
-          <span>Active Credit Tradelines ({accounts.length})</span>
+          <span>{t("accounts.activeTradelines", "Active Credit Tradelines")} ({accounts.length})</span>
         </h2>
 
         {accounts.length > 0 ? (
@@ -305,14 +305,14 @@ export default function Accounts() {
               const isCard = acc.account_type === "credit_card";
               const typeLabel =
                 acc.account_type === "credit_card"
-                  ? "Credit Card"
+                  ? t("accounts.creditCard", "Credit Card")
                   : acc.account_type === "personal_loan"
-                  ? "Personal Loan"
+                  ? t("accounts.personalLoan", "Personal Loan")
                   : acc.account_type === "home_loan"
-                  ? "Home Loan"
+                  ? t("accounts.homeLoan", "Home Loan")
                   : acc.account_type === "auto_loan"
-                  ? "Auto Loan"
-                  : "Loan / Tradeline";
+                  ? t("accounts.autoLoan", "Auto Loan")
+                  : t("accounts.loanTradeline", "Loan / Tradeline");
 
               const utilPercent =
                 acc.credit_limit > 0
@@ -346,14 +346,14 @@ export default function Accounts() {
                         <button
                           onClick={() => handleOpenEdit(acc)}
                           className="text-slate-500 hover:text-indigo-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-                          title="Edit account"
+                          title={t("common.edit", "Edit")}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteAccount(acc.id)}
                           className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-                          title="Delete account"
+                          title={t("common.delete", "Delete")}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -376,22 +376,22 @@ export default function Accounts() {
 
                     <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2">
                       <div className="flex justify-between text-xs">
-                        <span className="text-slate-400">Outstanding:</span>
+                        <span className="text-slate-400">{t("accounts.currentBalance", "Outstanding")}:</span>
                         <span className="font-bold text-white">₹{acc.current_balance?.toLocaleString("en-IN")}</span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-slate-400">{isCard ? "Credit Limit:" : "Principal Loan:"}</span>
+                        <span className="text-slate-400">{isCard ? t("accounts.creditLimit", "Credit Limit:") : t("accounts.loanTradeline", "Principal Loan:")}</span>
                         <span className="font-bold text-slate-300">₹{acc.credit_limit?.toLocaleString("en-IN")}</span>
                       </div>
                       {acc.monthly_emi > 0 && (
                         <div className="flex justify-between text-xs">
-                          <span className="text-slate-400">Monthly EMI:</span>
+                          <span className="text-slate-400">{t("accounts.monthlyPayment", "Monthly EMI")}:</span>
                           <span className="font-bold text-indigo-400">₹{acc.monthly_emi?.toLocaleString("en-IN")}</span>
                         </div>
                       )}
                       {acc.opened_date && (
                         <div className="flex justify-between text-[11px] text-slate-500 pt-1">
-                          <span>Opened:</span>
+                          <span>{t("accounts.tenure", "Opened")}:</span>
                           <span>{acc.opened_date}</span>
                         </div>
                       )}
@@ -402,7 +402,7 @@ export default function Accounts() {
                   {isCard && acc.credit_limit > 0 && (
                     <div className="mt-4 pt-3 border-t border-slate-800/80">
                       <div className="flex justify-between text-[10px] text-slate-400 mb-1">
-                        <span>Card Utilization</span>
+                        <span>{t("accounts.utilization", "Card Utilization")}</span>
                         <span className={utilPercent <= 30 ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
                           {utilPercent}%
                         </span>
@@ -421,9 +421,9 @@ export default function Accounts() {
           </div>
         ) : (
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 space-y-4">
-            <p className="text-sm font-medium text-slate-300">No credit cards or loan accounts added yet.</p>
+            <p className="text-sm font-medium text-slate-300">{t("accounts.noAccounts", "No credit cards or loan accounts added yet.")}</p>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Add your existing credit cards or loans to calculate utilization, DTI, and credit age accurately.
+              {t("accounts.noAccountsDesc", "Add your existing credit cards or loans to calculate utilization, DTI, and credit age accurately.")}
             </p>
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
@@ -433,14 +433,14 @@ export default function Accounts() {
                 }}
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Credit Account
+                <Plus className="w-3.5 h-3.5" /> {t("accounts.addAccount", "Add Credit Account")}
               </button>
               <button
                 onClick={handleSeedFromAccounts}
                 disabled={seeding}
                 className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
               >
-                <Clock className="w-3.5 h-3.5 text-indigo-400" /> {seeding ? "Loading..." : "Load Demo CIBIL Data"}
+                <Clock className="w-3.5 h-3.5 text-indigo-400" /> {seeding ? t("common.loading", "Loading...") : t("dashboard.loadDemoData", "Load Demo CIBIL Data")}
               </button>
             </div>
           </div>
@@ -503,12 +503,12 @@ export default function Accounts() {
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-white mb-4">
-              {editingAccount ? "Edit Credit Account / Loan" : "Add Credit Account / Loan"}
+              {editingAccount ? t("accounts.editAccountModalTitle", "Edit Credit Account / Loan") : t("accounts.addAccountModalTitle", "Add Credit Account / Loan")}
             </h3>
 
             <form onSubmit={handleSaveAccount} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Account Name</label>
+                <label className="block font-semibold text-slate-300 mb-1">{t("accounts.accountName", "Account Name")}</label>
                 <input
                   type="text"
                   placeholder="e.g. HDFC Regalia Gold / SBI Car Loan"
@@ -521,7 +521,7 @@ export default function Accounts() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Bank / Lender</label>
+                  <label className="block font-semibold text-slate-300 mb-1">{t("accounts.bankName", "Bank / Lender")}</label>
                   <select
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
@@ -537,24 +537,24 @@ export default function Accounts() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Account Type</label>
+                  <label className="block font-semibold text-slate-300 mb-1">{t("accounts.accountType", "Account Type")}</label>
                   <select
                     value={accountType}
                     onChange={(e) => setAccountType(e.target.value)}
                     className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm"
                   >
-                    <option value="credit_card">Credit Card</option>
-                    <option value="personal_loan">Personal Loan</option>
-                    <option value="home_loan">Home Loan</option>
-                    <option value="auto_loan">Auto Loan</option>
-                    <option value="other">Other</option>
+                    <option value="credit_card">{t("accounts.creditCard", "Credit Card")}</option>
+                    <option value="personal_loan">{t("accounts.personalLoan", "Personal Loan")}</option>
+                    <option value="home_loan">{t("accounts.homeLoan", "Home Loan")}</option>
+                    <option value="auto_loan">{t("accounts.autoLoan", "Auto Loan")}</option>
+                    <option value="other">{t("accounts.loanTradeline", "Other / Tradeline")}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Masked Number</label>
+                  <label className="block font-semibold text-slate-300 mb-1">{t("accounts.accountNumber", "Masked Number")}</label>
                   <input
                     type="text"
                     value={accountNumber}
@@ -565,7 +565,7 @@ export default function Accounts() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Payment Status</label>
+                  <label className="block font-semibold text-slate-300 mb-1">{t("accounts.paymentStatus", "Payment Status")}</label>
                   <select
                     value={paymentStatus}
                     onChange={(e) => setPaymentStatus(e.target.value)}
@@ -582,7 +582,7 @@ export default function Accounts() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Current Balance (₹)</label>
+                  <label className="block font-semibold text-slate-300 mb-1">{t("accounts.currentBalance", "Current Balance (₹)")}</label>
                   <input
                     type="number"
                     value={balance}
@@ -594,7 +594,7 @@ export default function Accounts() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Limit / Principal (₹)</label>
+                  <label className="block font-semibold text-slate-300 mb-1">{t("accounts.creditLimit", "Limit / Principal (₹)")}</label>
                   <input
                     type="number"
                     value={limit}
@@ -608,7 +608,7 @@ export default function Accounts() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Monthly EMI (₹)</label>
+                  <label className="block font-semibold text-slate-300 mb-1">{t("accounts.monthlyPayment", "Monthly EMI (₹)")}</label>
                   <input
                     type="number"
                     value={emi}
@@ -619,7 +619,7 @@ export default function Accounts() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Account Age (Months)</label>
+                  <label className="block font-semibold text-slate-300 mb-1">{t("accounts.tenure", "Account Age (Months)")}</label>
                   <input
                     type="number"
                     value={accountAgeMonths}
@@ -650,14 +650,14 @@ export default function Accounts() {
                   }}
                   className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
                 >
-                  Cancel
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={savingAccount}
                   className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold cursor-pointer"
                 >
-                  {savingAccount ? "Saving..." : editingAccount ? "Update Account" : "Add Account"}
+                  {savingAccount ? t("accounts.savingAccount", "Saving...") : editingAccount ? t("common.save", "Save Changes") : t("accounts.addAccount", "Add Account")}
                 </button>
               </div>
             </form>
@@ -669,11 +669,11 @@ export default function Accounts() {
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-4">Log Monthly Payment</h3>
+            <h3 className="text-lg font-bold text-white mb-4">{t("accounts.logPaymentModalTitle", "Log Monthly Payment")}</h3>
 
             <form onSubmit={handleCreatePayment} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Billing Month</label>
+                <label className="block font-semibold text-slate-300 mb-1">{t("accounts.billingMonth", "Billing Month")}</label>
                 <input
                   type="text"
                   placeholder="e.g. Sep 2026"
@@ -685,7 +685,7 @@ export default function Accounts() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Amount Paid (₹)</label>
+                <label className="block font-semibold text-slate-300 mb-1">{t("accounts.paymentAmount", "Amount Paid (₹)")}</label>
                 <input
                   type="number"
                   placeholder="15000"
@@ -697,15 +697,15 @@ export default function Accounts() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Payment Status</label>
+                <label className="block font-semibold text-slate-300 mb-1">{t("accounts.paymentStatus", "Payment Status")}</label>
                 <select
                   value={payStatus}
                   onChange={(e) => setPayStatus(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm"
                 >
-                  <option value="On-Time">On-Time (Paid before due date)</option>
-                  <option value="Delayed">Delayed / Grace Period</option>
-                  <option value="Missed">Missed Payment</option>
+                  <option value="On-Time">{t("accounts.onTime", "On-Time (Paid before due date)")}</option>
+                  <option value="Delayed">{t("accounts.delayed", "Delayed / Grace Period")}</option>
+                  <option value="Missed">{t("accounts.missed", "Missed Payment")}</option>
                 </select>
               </div>
 
@@ -715,14 +715,14 @@ export default function Accounts() {
                   onClick={() => setShowPaymentModal(false)}
                   className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
                 >
-                  Cancel
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={savingPayment}
                   className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold cursor-pointer"
                 >
-                  {savingPayment ? "Saving..." : "Log Record"}
+                  {savingPayment ? t("accounts.savingPayment", "Logging Payment...") : t("accounts.logPayment", "Log Payment")}
                 </button>
               </div>
             </form>

@@ -141,10 +141,10 @@ export default function Goals() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <Target className="w-7 h-7 text-indigo-400" />
-            {t("nav.goals", "Goals & CIBIL Score Simulator")}
+            {t("goals.title", "Goals & CIBIL Score Simulator")}
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Simulate the impact of paying down debt, increasing limits, and staying on-time.
+            {t("goals.subtitle", "Simulate the impact of paying down debt, increasing limits, and staying on-time.")}
           </p>
         </div>
 
@@ -152,7 +152,7 @@ export default function Goals() {
           onClick={() => setShowGoalModal(true)}
           className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Create Target Goal
+          <Plus className="w-4 h-4" /> {t("goals.setNewGoal", "Create Target Goal")}
         </button>
       </div>
 
@@ -162,20 +162,20 @@ export default function Goals() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-1">
-                <Sliders className="w-3.5 h-3.5" /> What-If Engine
+                <Sliders className="w-3.5 h-3.5" /> {t("goals.whatIfEngine", "What-If Engine")}
               </span>
               <span className="text-xs text-slate-400 font-mono">Real-time CIBIL Model</span>
             </div>
-            <h2 className="text-xl font-bold text-white">Interactive Score Simulator</h2>
+            <h2 className="text-xl font-bold text-white">{t("goals.whatIfEngine", "Interactive Score Simulator")}</h2>
             <p className="text-xs text-slate-400 mt-1">
-              Adjust levers to preview potential credit score transformations before making financial moves.
+              {t("goals.simulatorDesc", "Adjust levers to preview potential credit score transformations before making financial moves.")}
             </p>
           </div>
 
           {/* Projected Result Gauge */}
           <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 sm:px-6 flex items-center gap-6 self-stretch sm:self-auto justify-between">
             <div>
-              <div className="text-xs text-slate-400">{t("dashboard.cibilScore", "Current Score")}</div>
+              <div className="text-xs text-slate-400">{t("goals.currentBaseline", "Current Score")}</div>
               <div className="text-2xl font-black text-slate-300 font-mono">
                 {hasScore ? baseScore : t("dashboard.notAvailable", "Not Available")}
               </div>
@@ -184,7 +184,7 @@ export default function Goals() {
             <ArrowRight className="w-6 h-6 text-indigo-400" />
 
             <div>
-              <div className="text-xs text-slate-400">Projected Score (Estimate)</div>
+              <div className="text-xs text-slate-400">{t("goals.projectedScore", "Projected Score (Estimate)")}</div>
               {hasScore ? (
                 <div className="text-3xl font-black text-emerald-400 font-mono flex items-baseline gap-1.5">
                   <span>{projectedScore}</span>
@@ -221,7 +221,7 @@ export default function Goals() {
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5">
             <div className="flex justify-between items-center mb-3">
               <label className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                Pay Down Card Debt
+                {t("goals.paydownDebt", "Pay Down Card Debt")}
               </label>
               <span className="text-sm font-bold text-indigo-400 font-mono">
                 ₹{paydownAmount.toLocaleString("en-IN")}
@@ -249,7 +249,7 @@ export default function Goals() {
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5">
             <div className="flex justify-between items-center mb-3">
               <label className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                On-Time Payment Streak
+                {t("goals.ontimeTrack", "On-Time Payment Streak")}
               </label>
               <span className="text-sm font-bold text-emerald-400 font-mono">
                 {ontimeMonths} Months
@@ -274,7 +274,7 @@ export default function Goals() {
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5">
             <div className="flex justify-between items-center mb-3">
               <label className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                Request Limit Increase
+                {t("goals.limitExpansion", "Request Limit Increase")}
               </label>
               <span className="text-sm font-bold text-teal-400 font-mono">
                 +₹{limitIncrease.toLocaleString("en-IN")}
@@ -300,7 +300,7 @@ export default function Goals() {
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between">
             <div>
               <label className="text-xs font-bold text-slate-200 uppercase tracking-wider block mb-1">
-                Apply for New Loan / Card
+                {t("goals.hardInquiry", "Apply for New Loan / Card")}
               </label>
               <p className="text-xs text-slate-400 mb-3">
                 Applying creates a Hard Enquiry which may dip score by 5-10 points temporarily.
@@ -324,7 +324,7 @@ export default function Goals() {
       {/* Credit Improvement Goals List */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl shadow-slate-950/50">
         <h2 className="text-base font-bold text-white mb-4 flex items-center justify-between">
-          <span>Active Improvement Goals ({goals.length})</span>
+          <span>{t("goals.activeGoals", "Active Improvement Goals")} ({goals.length})</span>
         </h2>
 
         {goals.length > 0 ? (
@@ -354,12 +354,12 @@ export default function Goals() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-white">
-                          Target Score: {g.target_score}
+                          {t("goals.targetScore", "Target Score")}: {g.target_score}
                         </span>
                         <span className="text-xs text-slate-400 font-mono">by {g.target_date}</span>
                         {isAchieved && (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            Achieved
+                            {t("goals.completed", "Achieved")}
                           </span>
                         )}
                       </div>
@@ -372,7 +372,7 @@ export default function Goals() {
                       onClick={() => handleDeleteGoal(g.id)}
                       className="text-xs text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
                     >
-                      Delete
+                      {t("common.delete", "Delete")}
                     </button>
                   </div>
                 </div>
@@ -381,12 +381,12 @@ export default function Goals() {
           </div>
         ) : (
           <div className="py-8 text-center text-slate-400 space-y-3">
-            <p className="text-xs">No target goals created yet. Set a milestone (e.g. 780 for prime home loan approval).</p>
+            <p className="text-xs">{t("goals.noGoals", "No target goals created yet. Set a milestone (e.g. 780 for prime home loan approval).")}</p>
             <button
               onClick={() => setShowGoalModal(true)}
               className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" /> Create Your First Goal
+              <Plus className="w-3.5 h-3.5" /> {t("goals.setNewGoal", "Create Target Goal")}
             </button>
           </div>
         )}
@@ -396,11 +396,11 @@ export default function Goals() {
       {showGoalModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl text-xs">
-            <h3 className="text-lg font-bold text-white mb-4">Set CIBIL Improvement Goal</h3>
+            <h3 className="text-lg font-bold text-white mb-4">{t("goals.createGoalModalTitle", "Set CIBIL Improvement Goal")}</h3>
 
             <form onSubmit={handleCreateGoal} className="space-y-4">
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Target Score (300-900)</label>
+                <label className="block font-semibold text-slate-300 mb-1">{t("goals.targetScore", "Target Score (300-900)")}</label>
                 <input
                   type="number"
                   min="300"
@@ -413,7 +413,7 @@ export default function Goals() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Target Date</label>
+                <label className="block font-semibold text-slate-300 mb-1">{t("goals.targetDate", "Target Date")}</label>
                 <input
                   type="text"
                   placeholder="e.g. Dec 2026 / 6 Months"
@@ -424,7 +424,7 @@ export default function Goals() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Strategy / Action Plan</label>
+                <label className="block font-semibold text-slate-300 mb-1">{t("goals.actionPlan", "Strategy / Action Plan")}</label>
                 <textarea
                   rows="3"
                   placeholder="e.g. Pay down HDFC credit card balance to under 20% and never miss an EMI."
@@ -440,14 +440,14 @@ export default function Goals() {
                   onClick={() => setShowGoalModal(false)}
                   className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
                 >
-                  Cancel
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={savingGoal}
                   className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
                 >
-                  {savingGoal ? "Saving..." : "Save Goal"}
+                  {savingGoal ? t("goals.savingGoal", "Saving...") : t("goals.setNewGoal", "Save Goal")}
                 </button>
               </div>
             </form>

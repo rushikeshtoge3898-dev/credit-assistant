@@ -97,10 +97,10 @@ export default function Layout() {
               <button
                 onClick={() => setActiveModal("help")}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors cursor-pointer"
-                title="Help & Support"
+                title={t("layout.helpAndSupport", "Help & Support")}
               >
                 <HelpCircle className="w-4 h-4 text-indigo-400" />
-                <span>Help</span>
+                <span>{t("layout.help", "Help")}</span>
               </button>
 
               {/* Language Switcher */}
@@ -208,7 +208,7 @@ export default function Layout() {
                 className="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 w-full text-left"
               >
                 <HelpCircle className="w-4 h-4 mr-3 shrink-0 text-indigo-400" />
-                <span>Help &amp; Support</span>
+                <span>{t("layout.helpAndSupport", "Help & Support")}</span>
               </button>
             </div>
 
@@ -240,7 +240,7 @@ export default function Layout() {
             <span>Credit Assistant &copy; {new Date().getFullYear()}</span>
             <span className="mx-2">&bull;</span>
             <span className="text-slate-400">
-              Credit Assistant is not a bank, lender, credit bureau, or official CIBIL service.
+              {t("layout.conciseDisclaimer", "Credit Assistant is not a bank, lender, credit bureau, or official CIBIL service.")}
             </span>
           </div>
           <div className="flex items-center space-x-3 text-slate-400 text-xs">
@@ -248,28 +248,28 @@ export default function Layout() {
               onClick={() => setActiveModal("help")}
               className="hover:text-indigo-400 transition-colors cursor-pointer"
             >
-              Help &amp; Support
+              {t("layout.helpAndSupport", "Help & Support")}
             </button>
             <span>&bull;</span>
             <button
               onClick={() => setActiveModal("privacy")}
               className="hover:text-indigo-400 transition-colors cursor-pointer"
             >
-              Privacy Policy
+              {t("layout.privacyPolicy", "Privacy Policy")}
             </button>
             <span>&bull;</span>
             <button
               onClick={() => setActiveModal("terms")}
               className="hover:text-indigo-400 transition-colors cursor-pointer"
             >
-              Terms of Use
+              {t("layout.termsOfUse", "Terms of Use")}
             </button>
             <span>&bull;</span>
             <button
               onClick={() => setActiveModal("disclaimer")}
               className="hover:text-indigo-400 transition-colors cursor-pointer"
             >
-              Disclaimer
+              {t("layout.disclaimer", "Disclaimer")}
             </button>
           </div>
         </div>
@@ -282,7 +282,7 @@ export default function Layout() {
             <button
               onClick={() => setActiveModal(null)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
-              aria-label="Close modal"
+              aria-label={t("common.close", "Close")}
             >
               <X className="w-5 h-5" />
             </button>
@@ -292,30 +292,30 @@ export default function Layout() {
               <div>
                 <div className="flex items-center gap-2 mb-4 text-indigo-400">
                   <HelpCircle className="w-5 h-5" />
-                  <h2 className="text-lg font-bold text-white">Help &amp; Support</h2>
+                  <h2 className="text-lg font-bold text-white">{t("layout.helpAndSupport", "Help & Support")}</h2>
                 </div>
                 <div className="space-y-4 text-slate-300 text-sm">
                   <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-                    <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Support</div>
+                    <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">{t("layout.support", "Support")}</div>
                     <div className="text-base font-semibold text-white flex items-center gap-2">
                       <Mail className="w-4 h-4 text-indigo-400 shrink-0" />
                       <a
                         href="mailto:rushikeshtoge31@gmail.com"
                         className="text-indigo-400 hover:text-indigo-300 underline underline-offset-4"
                       >
-                        support@creditassistant.com
+                        {t("layout.supportEmail", "support@creditassistant.com")}
                       </a>
                     </div>
                     <p className="text-xs text-slate-400">
-                      Click the email above to compose an inquiry. We assist with account access, credit health insights, and platform questions.
+                      {t("layout.helpDesc", "Click the email above to compose an inquiry. We assist with account access, credit health insights, and platform questions.")}
                     </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
-                    <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Created by</div>
-                    <div className="text-sm font-semibold text-white">Rushikesh Toge</div>
+                    <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">{t("layout.createdBy", "Created by")}</div>
+                    <div className="text-sm font-semibold text-white">{t("layout.creatorName", "Rushikesh Toge")}</div>
                     <p className="text-xs text-slate-400">
-                      Designed and engineered for Indian credit health monitoring and AI financial advisory.
+                      {t("layout.creatorBio", "Designed and engineered for Indian credit health monitoring and AI financial advisory.")}
                     </p>
                   </div>
                 </div>
@@ -327,21 +327,13 @@ export default function Layout() {
               <div>
                 <div className="flex items-center gap-2 mb-4 text-emerald-400">
                   <FileText className="w-5 h-5" />
-                  <h2 className="text-lg font-bold text-white">Privacy Policy</h2>
+                  <h2 className="text-lg font-bold text-white">{t("layout.privacyPolicy", "Privacy Policy")}</h2>
                 </div>
                 <div className="space-y-3 text-slate-300 text-xs leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
-                  <p>
-                    <strong>1. Information Collection:</strong> We collect only the information you provide voluntarily, including your name, email address, 10-digit mobile number, and credit account/history figures entered for analysis.
-                  </p>
-                  <p>
-                    <strong>2. Use of Data:</strong> Your data is used exclusively to simulate credit scores, compute debt-to-income and utilization ratios, and deliver personalized credit health recommendations.
-                  </p>
-                  <p>
-                    <strong>3. AI Interactions:</strong> When you consult the AI Advisor, relevant financial context (without passwords, JWTs, or private credentials) is processed to answer credit queries in English, Marathi, or Hindi.
-                  </p>
-                  <p>
-                    <strong>4. Data Protection:</strong> We employ industry-standard encryption, hashed passwords, and token authentication. We never sell or transfer your personal records to third-party lenders.
-                  </p>
+                  <p>{t("layout.privacy1")}</p>
+                  <p>{t("layout.privacy2")}</p>
+                  <p>{t("layout.privacy3")}</p>
+                  <p>{t("layout.privacy4")}</p>
                 </div>
               </div>
             )}
@@ -351,18 +343,12 @@ export default function Layout() {
               <div>
                 <div className="flex items-center gap-2 mb-4 text-indigo-400">
                   <FileText className="w-5 h-5" />
-                  <h2 className="text-lg font-bold text-white">Terms of Use</h2>
+                  <h2 className="text-lg font-bold text-white">{t("layout.termsOfUse", "Terms of Use")}</h2>
                 </div>
                 <div className="space-y-3 text-slate-300 text-xs leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
-                  <p>
-                    <strong>1. Acceptance:</strong> By accessing Credit Assistant, you agree to these Terms. If you disagree, please do not use the service.
-                  </p>
-                  <p>
-                    <strong>2. Advisory Nature:</strong> Score simulations, health grades, and AI answers are informational tools based on Indian credit bureau scoring models. They do not constitute official bureau reports, binding legal counsel, or guaranteed loan offers.
-                  </p>
-                  <p>
-                    <strong>3. Account Responsibility:</strong> You are responsible for safeguarding your login credentials and maintaining the accuracy of data entered into your credit tradelines.
-                  </p>
+                  <p>{t("layout.terms1")}</p>
+                  <p>{t("layout.terms2")}</p>
+                  <p>{t("layout.terms3")}</p>
                 </div>
               </div>
             )}
@@ -372,15 +358,13 @@ export default function Layout() {
               <div>
                 <div className="flex items-center gap-2 mb-4 text-amber-400">
                   <ShieldAlert className="w-5 h-5" />
-                  <h2 className="text-lg font-bold text-white">Official Disclaimer</h2>
+                  <h2 className="text-lg font-bold text-white">{t("layout.officialDisclaimer", "Official Disclaimer")}</h2>
                 </div>
                 <div className="space-y-3 text-slate-300 text-xs leading-relaxed">
                   <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 font-medium">
-                    Credit Assistant is not a bank, lender, credit bureau, or official CIBIL service.
+                    {t("layout.conciseDisclaimer", "Credit Assistant is not a bank, lender, credit bureau, or official CIBIL service.")}
                   </div>
-                  <p>
-                    All scores and analytics displayed within this platform are algorithmic simulations reflecting CIBIL TransUnion scoring methodology (range 300 to 900). No direct credit bureau pull is executed without your explicit external consent through licensed financial partners.
-                  </p>
+                  <p>{t("layout.disclaimerDetail")}</p>
                 </div>
               </div>
             )}
@@ -390,7 +374,7 @@ export default function Layout() {
                 onClick={() => setActiveModal(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
               >
-                Close
+                {t("common.close", "Close")}
               </button>
             </div>
           </div>

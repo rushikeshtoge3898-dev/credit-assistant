@@ -166,10 +166,10 @@ export default function ScoreHistory() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <TrendingUp className="w-7 h-7 text-indigo-400" />
-            Credit Score History & Trend
+            {t("scoreHistory.title", "Credit Score History & Trend")}
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Track your CIBIL score trajectory and milestone achievements across snapshots.
+            {t("scoreHistory.subtitle", "Track your CIBIL score trajectory and milestone achievements across snapshots.")}
           </p>
         </div>
 
@@ -179,7 +179,7 @@ export default function ScoreHistory() {
             <Award className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs text-slate-400">Total Net Change</div>
+            <div className="text-xs text-slate-400">{t("scoreHistory.netChange", "Total Net Change")}</div>
             <div className="text-sm font-bold flex items-center gap-1">
               {netDiff >= 0 ? (
                 <span className="text-emerald-400 flex items-center">
@@ -198,9 +198,9 @@ export default function ScoreHistory() {
       {/* 4 Score Snapshot KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-lg">
-          <div className="text-xs text-slate-400">Current Score</div>
+          <div className="text-xs text-slate-400">{t("scoreHistory.currentScore", "Current Score")}</div>
           <div className="text-2xl font-black text-white mt-1 flex items-baseline gap-1.5">
-            <span>{hasScore ? currentScore : "Not Recorded"}</span>
+            <span>{hasScore ? currentScore : t("dashboard.notAvailable", "Not Available")}</span>
             {hasScore && <span className="text-xs text-slate-400 font-mono">/ 900</span>}
           </div>
           <div className="text-xs font-semibold mt-1">
@@ -209,7 +209,7 @@ export default function ScoreHistory() {
                 {currentScore >= 750 ? "Prime / Excellent" : currentScore >= 700 ? "Good" : "Needs Care"}
               </span>
             ) : (
-              <span className="text-slate-500">No score logged</span>
+              <span className="text-slate-500">{t("dashboard.notAvailable", "Not Available")}</span>
             )}
           </div>
         </div>
@@ -265,7 +265,7 @@ export default function ScoreHistory() {
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl shadow-slate-950/50">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h3 className="text-base font-bold text-white">Score Progression Curve</h3>
+            <h3 className="text-base font-bold text-white">{t("scoreHistory.scoreTrajectory", "Score Progression Curve")}</h3>
             <p className="text-xs text-slate-400 mt-0.5">
               CIBIL benchmark line set at 750 (Prime Approval Threshold)
             </p>
@@ -319,8 +319,8 @@ export default function ScoreHistory() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs space-y-2">
               <History className="w-8 h-8 text-slate-600" />
-              <p>No score snapshots logged yet.</p>
-              <p className="text-[11px] text-slate-600">Enter your latest score below to begin building your trend curve.</p>
+              <p>{t("scoreHistory.noHistory", "No score snapshots logged yet.")}</p>
+              <p className="text-[11px] text-slate-600">{t("scoreHistory.noHistoryDesc", "Enter your latest score below to begin building your trend curve.")}</p>
             </div>
           )}
         </div>
@@ -332,7 +332,7 @@ export default function ScoreHistory() {
         <div className="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl shadow-slate-950/50">
           <h3 className="text-base font-bold text-white mb-1 flex items-center gap-2">
             <Plus className="w-4 h-4 text-indigo-400" />
-            Log New CIBIL Score
+            {t("scoreHistory.logScore", "Log New CIBIL Score")}
           </h3>
           <p className="text-xs text-slate-400 mb-5">
             Checked your latest report from CIBIL, OneScore, or your bank? Add it here.
@@ -355,7 +355,7 @@ export default function ScoreHistory() {
           <form onSubmit={handleAddScore} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                CIBIL Score (300 - 900)
+                {t("profile.currentScore", "CIBIL Score (300 - 900)")}
               </label>
               <input
                 type="number"
@@ -363,7 +363,7 @@ export default function ScoreHistory() {
                 max="900"
                 value={newScore}
                 onChange={(e) => setNewScore(e.target.value)}
-                placeholder="e.g. 750"
+                placeholder={t("scoreHistory.scorePlaceholder", "e.g. 750 (300-900)")}
                 required
                 className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-base font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
@@ -374,7 +374,7 @@ export default function ScoreHistory() {
               disabled={submitting}
               className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs shadow-lg shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50"
             >
-              {submitting ? "Logging snapshot..." : "Save Score Snapshot"}
+              {submitting ? t("scoreHistory.savingScore", "Recording...") : t("scoreHistory.logScore", "Record Score")}
             </button>
           </form>
         </div>
@@ -383,7 +383,7 @@ export default function ScoreHistory() {
         <div className="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl shadow-slate-950/50">
           <h3 className="text-base font-bold text-white mb-1 flex items-center gap-2">
             <Calendar className="w-4 h-4 text-indigo-400" />
-            Snapshot Timeline ({history.length})
+            {t("scoreHistory.timelineTitle", "Snapshot Timeline")} ({history.length})
           </h3>
           <p className="text-xs text-slate-400 mb-5">
             Log of historical CIBIL data points and trajectory milestones.
@@ -394,10 +394,10 @@ export default function ScoreHistory() {
               <table className="w-full text-left text-xs text-slate-300">
                 <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="py-2.5 px-3 rounded-l-lg">Snapshot Date</th>
-                    <th className="py-2.5 px-3">CIBIL Score</th>
-                    <th className="py-2.5 px-3">Category</th>
-                    <th className="py-2.5 px-3 rounded-r-lg">Change</th>
+                    <th className="py-2.5 px-3 rounded-l-lg">{t("scoreHistory.dateRecorded", "Snapshot Date")}</th>
+                    <th className="py-2.5 px-3">{t("scoreHistory.score", "CIBIL Score")}</th>
+                    <th className="py-2.5 px-3">{t("scoreHistory.tier", "Category")}</th>
+                    <th className="py-2.5 px-3 rounded-r-lg">{t("scoreHistory.netChange", "Change")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -444,7 +444,7 @@ export default function ScoreHistory() {
             </div>
           ) : (
             <div className="py-8 text-center text-slate-500 text-xs">
-              No historical entries to show.
+              {t("scoreHistory.noHistory", "No historical entries to show.")}
             </div>
           )}
         </div>
