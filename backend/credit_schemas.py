@@ -10,7 +10,8 @@ class CreditProfileCreate(BaseModel):
     )
 
     monthly_income: float = Field(
-        gt=0
+        default=0.0,
+        ge=0
     )
 
     total_debt: float = Field(
@@ -56,7 +57,7 @@ class CreditProfileResponse(BaseModel):
 
 class CreditProfileUpdate(BaseModel):
     credit_score: Optional[int] = Field(default=None, ge=300, le=900)
-    monthly_income: Optional[float] = Field(default=None, gt=0)
+    monthly_income: Optional[float] = Field(default=None, ge=0)
     total_debt: Optional[float] = Field(default=None, ge=0)
     credit_limit: Optional[float] = Field(default=None, ge=0)
     credit_card_balance: Optional[float] = Field(default=None, ge=0)

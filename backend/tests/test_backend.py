@@ -539,3 +539,74 @@ def test_demo_seeding_idempotence():
     assert accs_count2 == accs_count1, f"Accounts duplicated: expected {accs_count1}, got {accs_count2}"
     assert hist_count2 == hist_count1, f"Score history duplicated: expected {hist_count1}, got {hist_count2}"
     assert pays_count2 == pays_count1, f"Payments duplicated: expected {pays_count1}, got {pays_count2}"
+
+
+# ============================================================================
+# 12. USER PROFILE UPDATE (NAME, EMAIL, PHONE) TESTS
+# ============================================================================
+
+def test_user_profile_update_success_and_persistence():
+    """Verify authenticated user can update name, email, and mobile number, and changes persist."""
+    token = get_auth_token("profile_update_user@example.com", name="Initial Name")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Update name, email, and mobile number
+    update_payload = {
+        "name": "Updated Full Name",
+        "email": "new_profile_email@example.com",
+        "mobile": "9876543210"
+    }
+    res = client.put("/api/auth/profile", headers=headers, json=update_payload)
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["name"] == "Updated Full Name"
+    assert data["email"] == "new_profile_email@example.com"
+    assert data["phone_number"] == "+919876543210"
+
+    # 2. Verify persistence via /api/auth/me using the SAME token (JWT sub remains user.id)
+    me_res = client.get("/api/auth/me", headers=headers)
+    assert me_res.status_code == 200
+    me_data = me_res.json()
+    assert me_data["name"] == "Updated Full Name"
+    assert me_data["email"] == "new_profile_email@example.com"
+    assert me_data["phone_number"] == "+919876543210"
+
+    # 3. Test root alias /auth/profile
+    res_alias = client.put("/auth/profile", headers=headers, json={"name": "Second Update Name"})
+    assert res_alias.status_code == 200
+    assert res_alias.json()["name"] == "Second Update Name"
+
+
+def test_user_profile_update_email_collision():
+    """Verify updating to an email that belongs to another user returns 400."""
+    get_auth_token("user_one_collision@example.com", name="User One")
+    token_two = get_auth_token("user_two_collision@example.com", name="User Two")
+    headers = {"Authorization": f"Bearer {token_two}"}
+
+    # Try updating user two to user one's email
+    res = client.put(
+        "/api/auth/profile",
+        headers=headers,
+        json={"email": "user_one_collision@example.com"}
+    )
+    assert res.status_code == 400
+    assert "Email already registered" in res.json()["detail"]
+
+
+def test_user_profile_update_validation_errors():
+    """Verify invalid phone number or blank name raises 422."""
+    token = get_auth_token("validation_test_user@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Blank name
+    res_name = client.put("/api/auth/profile", headers=headers, json={"name": "   "})
+    assert res_name.status_code == 422
+
+    # Invalid mobile (starts with 1, only 5 digits)
+    res_phone = client.put("/api/auth/profile", headers=headers, json={"mobile": "12345"})
+    assert res_phone.status_code == 422
+
+    # Unauthorized request (no token)
+    res_unauth = client.put("/api/auth/profile", json={"name": "No Token"})
+    assert res_unauth.status_code == 401
+

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api, { creditAPI } from "../services/api";
+import api, { creditAPI, authAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import {
@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, updateUser, refreshUser } = useAuth();
   const { t } = useLanguage();
 
   const [profile, setProfile] = useState(null);
@@ -31,7 +31,12 @@ export default function Profile() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Form states for editable fields
+  // Form states for User Information fields
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [mobileNumber, setMobileNumber] = useState(user?.phone_number || "");
+
+  // Form states for Financial Information fields
   const [creditScore, setCreditScore] = useState("");
   const [income, setIncome] = useState("");
   const [debt, setDebt] = useState("");
@@ -41,22 +46,28 @@ export default function Profile() {
   const [missedPayments, setMissedPayments] = useState("0");
   const [financialGoal, setFinancialGoal] = useState("");
 
-  const populateFormFields = (p) => {
+  const populateFormFields = (p, currentUser = user) => {
+    // Populate user details
+    setName(currentUser?.name || "");
+    setEmail(currentUser?.email || "");
+    setMobileNumber(currentUser?.phone_number || "");
+
+    // Populate credit details
     if (p) {
       setCreditScore(p.credit_score !== null && p.credit_score !== undefined ? String(p.credit_score) : "");
-      setIncome(p.monthly_income !== null && p.monthly_income !== undefined ? String(p.monthly_income) : "");
-      setDebt(p.total_debt !== null && p.total_debt !== undefined ? String(p.total_debt) : "");
-      setLimit(p.credit_limit !== null && p.credit_limit !== undefined ? String(p.credit_limit) : "");
-      setBalance(p.credit_card_balance !== null && p.credit_card_balance !== undefined ? String(p.credit_card_balance) : "");
+      setIncome(p.monthly_income !== null && p.monthly_income !== undefined ? String(p.monthly_income) : "0");
+      setDebt(p.total_debt !== null && p.total_debt !== undefined ? String(p.total_debt) : "0");
+      setLimit(p.credit_limit !== null && p.credit_limit !== undefined ? String(p.credit_limit) : "0");
+      setBalance(p.credit_card_balance !== null && p.credit_card_balance !== undefined ? String(p.credit_card_balance) : "0");
       setActiveLoans(p.active_loans !== null && p.active_loans !== undefined ? String(p.active_loans) : "0");
       setMissedPayments(p.missed_payments !== null && p.missed_payments !== undefined ? String(p.missed_payments) : "0");
       setFinancialGoal(p.financial_goal || "");
     } else {
       setCreditScore("");
-      setIncome("");
-      setDebt("");
-      setLimit("");
-      setBalance("");
+      setIncome("0");
+      setDebt("0");
+      setLimit("0");
+      setBalance("0");
       setActiveLoans("0");
       setMissedPayments("0");
       setFinancialGoal("");
@@ -75,7 +86,7 @@ export default function Profile() {
         }
       }
       setProfile(p);
-      populateFormFields(p);
+      populateFormFields(p, user);
     } catch (err) {
       console.error("Failed to fetch profile:", err);
     } finally {
@@ -87,15 +98,24 @@ export default function Profile() {
     fetchProfile();
   }, []);
 
+  // Synchronize user fields if user changes in context
+  useEffect(() => {
+    if (user && !isEditing) {
+      setName(user.name || "");
+      setEmail(user.email || "");
+      setMobileNumber(user.phone_number || "");
+    }
+  }, [user, isEditing]);
+
   const handleStartEdit = () => {
-    populateFormFields(profile);
+    populateFormFields(profile, user);
     setError("");
     setMessage("");
     setIsEditing(true);
   };
 
   const handleCancelEdit = () => {
-    populateFormFields(profile);
+    populateFormFields(profile, user);
     setError("");
     setMessage("");
     setIsEditing(false);
@@ -107,7 +127,34 @@ export default function Profile() {
     setMessage("");
     setError("");
 
-    // Validate score if entered
+    // 1. Validate User Details
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError(t("profile.nameRequired", "Full Name cannot be empty."));
+      setSaving(false);
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!trimmedEmail || !emailPattern.test(trimmedEmail)) {
+      setError(t("profile.validEmailRequired", "Please enter a valid email address."));
+      setSaving(false);
+      return;
+    }
+
+    const trimmedMobile = mobileNumber.trim();
+    if (trimmedMobile) {
+      const cleanPhone = trimmedMobile.replace(/\D/g, "");
+      const last10 = cleanPhone.slice(-10);
+      if (cleanPhone.length < 10 || !/^[6-9]\d{9}$/.test(last10)) {
+        setError(t("profile.validMobileRequired", "Please enter a valid 10-digit Indian mobile number."));
+        setSaving(false);
+        return;
+      }
+    }
+
+    // 2. Validate CIBIL Score (if provided)
     let parsedScore = null;
     if (creditScore !== "" && creditScore !== null && creditScore !== undefined) {
       const num = parseInt(creditScore, 10);
@@ -119,7 +166,15 @@ export default function Profile() {
       parsedScore = num;
     }
 
-    const payload = {
+    // 3. Payloads
+    const userPayload = {
+      name: trimmedName,
+      email: trimmedEmail,
+      mobile: trimmedMobile || null,
+      phone_number: trimmedMobile || null,
+    };
+
+    const creditPayload = {
       monthly_income: parseFloat(income) || 0,
       total_debt: parseFloat(debt) || 0,
       credit_limit: parseFloat(limit) || 0,
@@ -127,27 +182,48 @@ export default function Profile() {
       active_loans: parseInt(activeLoans, 10) || 0,
       missed_payments: parseInt(missedPayments, 10) || 0,
       financial_goal: financialGoal.trim(),
-      credit_score: parsedScore, // Preserves null if empty
+      credit_score: parsedScore,
     };
 
     try {
-      let updated = null;
+      // Step 1: Update User Information (Name, Email, Mobile)
+      let updatedUser = null;
       try {
-        updated = await creditAPI.updateProfile(payload);
-      } catch (err) {
-        const fallbackRes = await api.put("/credit/profile", payload);
-        updated = fallbackRes.data;
+        updatedUser = await authAPI.updateProfile(userPayload);
+      } catch (authErr) {
+        if (authErr.response?.status === 400 && authErr.response?.data?.detail?.includes("Email already registered")) {
+          throw new Error(t("auth.emailAlreadyRegistered", "Email already registered by another account."));
+        }
+        // Fallback to direct endpoint
+        const fbRes = await api.put("/auth/profile", userPayload);
+        updatedUser = fbRes.data;
       }
 
-      setProfile(updated || payload);
-      populateFormFields(updated || payload);
-      setMessage(t("profile.updateSuccess", "Credit profile updated successfully!"));
+      if (updatedUser) {
+        if (updateUser) updateUser(updatedUser);
+        if (refreshUser) await refreshUser();
+      }
+
+      // Step 2: Update Financial Indicators
+      let updatedProfile = null;
+      try {
+        updatedProfile = await creditAPI.updateProfile(creditPayload);
+      } catch (credErr) {
+        const fallbackRes = await api.put("/credit/profile", creditPayload);
+        updatedProfile = fallbackRes.data;
+      }
+
+      setProfile(updatedProfile || creditPayload);
+      populateFormFields(updatedProfile || creditPayload, updatedUser || user);
+      setMessage(t("profile.updateSuccess", "Profile and financial indicators updated successfully!"));
       setIsEditing(false);
+
       // Re-fetch to ensure sync with backend
       fetchProfile();
     } catch (err) {
       console.error("Update failed:", err);
-      setError(t("profile.updateError", "Failed to update profile. Please ensure values are valid."));
+      const errMsg = err.response?.data?.detail || err.message || t("profile.updateError", "Failed to update profile. Please ensure values are valid.");
+      setError(typeof errMsg === "string" ? errMsg : JSON.stringify(errMsg));
     } finally {
       setSaving(false);
     }
@@ -205,181 +281,259 @@ export default function Profile() {
         </div>
       )}
 
-      {/* User Information Card */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
-        <h2 className="text-sm sm:text-base font-bold text-white mb-4 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-indigo-400 shrink-0" />
-          <span>{t("profile.accountDetails", "Account Details")}</span>
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm">
-          <div className="bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
-            <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-indigo-400" />
-              {t("profile.registeredName", "Registered Name:")}
-            </span>
-            <div className="font-semibold text-slate-200 mt-1 break-words">{user?.name || t("profile.notProvided", "Not provided")}</div>
-          </div>
-          <div className="bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
-            <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-emerald-400" />
-              {t("profile.emailAddress", "Email Address:")}
-            </span>
-            <div className="font-semibold text-slate-200 mt-1 break-all">{user?.email || t("profile.notProvided", "Not provided")}</div>
-          </div>
-          <div className="bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
-            <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-teal-400" />
-              {t("profile.mobileNumber", "Mobile Number:")}
-            </span>
-            <div className="font-semibold text-slate-200 mt-1 font-mono">
-              {user?.phone_number || t("profile.notProvided", "Not provided")}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Financial Parameters: VIEW MODE vs EDIT MODE */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-800">
-          <div>
-            <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-              <IndianRupee className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{t("profile.indicatorsTitle", "Financial Indicators (Used for CIBIL & DTI Calculations)")}</span>
+      {!isEditing ? (
+        /* ==================== VIEW MODE ==================== */
+        <div className="space-y-6 sm:space-y-8">
+          {/* User Information Card (View Mode) */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+            <h2 className="text-sm sm:text-base font-bold text-white mb-4 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span>{t("profile.accountDetails", "Account Details")}</span>
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              {t("profile.indicatorsDesc", "Keep these updated so your credit analytics and AI coaching remain accurate.")}
-            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm">
+              <div className="bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
+                <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-indigo-400" />
+                  {t("profile.registeredName", "Registered Name:")}
+                </span>
+                <div className="font-semibold text-slate-200 mt-1 break-words">{user?.name || t("profile.notProvided", "Not provided")}</div>
+              </div>
+              <div className="bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
+                <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                  {t("profile.emailAddress", "Email Address:")}
+                </span>
+                <div className="font-semibold text-slate-200 mt-1 break-all">{user?.email || t("profile.notProvided", "Not provided")}</div>
+              </div>
+              <div className="bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80">
+                <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-teal-400" />
+                  {t("profile.mobileNumber", "Mobile Number:")}
+                </span>
+                <div className="font-semibold text-slate-200 mt-1 font-mono">
+                  {user?.phone_number || t("profile.notProvided", "Not provided")}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {!isEditing ? (
-            <button
-              type="button"
-              onClick={handleStartEdit}
-              className="self-start sm:self-auto px-4 py-2 rounded-xl text-xs font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-              <span>{t("profile.editProfile", "Edit Profile")}</span>
-            </button>
-          ) : (
-            <span className="self-start sm:self-auto px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              {t("goals.inProgress", "Editing Mode")}
-            </span>
-          )}
-        </div>
-
-        {!isEditing ? (
-          /* ================= VIEW MODE ================= */
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* CIBIL Score View */}
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
-                  {t("profile.currentScore", "Current CIBIL Score")}
-                </span>
-                <div className="mt-2 text-2xl font-black text-white font-mono">
-                  {profile?.credit_score !== null && profile?.credit_score !== undefined ? (
-                    <span className="text-emerald-400">{profile.credit_score}</span>
-                  ) : (
-                    <span className="text-slate-500 text-sm font-normal">{t("profile.notRecorded", "Not Recorded")}</span>
-                  )}
-                </div>
+          {/* Financial Indicators Card (View Mode) */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-800">
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                  <IndianRupee className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{t("profile.indicatorsTitle", "Financial Indicators (Used for CIBIL & DTI Calculations)")}</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  {t("profile.indicatorsDesc", "Keep these updated so your credit analytics and AI coaching remain accurate.")}
+                </p>
               </div>
 
-              {/* Monthly Income View */}
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
-                  <IndianRupee className="w-3.5 h-3.5 text-emerald-400" />
-                  {t("profile.monthlyIncome", "Monthly In-Hand Income")}
-                </span>
-                <div className="mt-2 text-xl font-bold text-white">
-                  ₹{Number(profile?.monthly_income || 0).toLocaleString("en-IN")}
-                </div>
-              </div>
-
-              {/* Total Debt View */}
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-amber-400" />
-                  {t("profile.totalDebt", "Total Debt / Loan Principal")}
-                </span>
-                <div className="mt-2 text-xl font-bold text-white">
-                  ₹{Number(profile?.total_debt || 0).toLocaleString("en-IN")}
-                </div>
-              </div>
-
-              {/* Credit Limit View */}
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-teal-400" />
-                  {t("profile.creditLimit", "Sanctioned Credit Limit")}
-                </span>
-                <div className="mt-2 text-xl font-bold text-teal-400">
-                  ₹{Number(profile?.credit_limit || 0).toLocaleString("en-IN")}
-                </div>
-              </div>
-
-              {/* Card Balance View */}
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
-                  {t("profile.cardBalance", "Current Card Balance")}
-                </span>
-                <div className="mt-2 text-xl font-bold text-white">
-                  ₹{Number(profile?.credit_card_balance || 0).toLocaleString("en-IN")}
-                </div>
-              </div>
-
-              {/* Active Loans & Missed Payments */}
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                <div className="flex justify-between items-center text-xs text-slate-400">
-                  <span className="uppercase tracking-wider font-medium">{t("profile.activeLoans", "Active Loans")}:</span>
-                  <span className="font-bold text-white font-mono">{profile?.active_loans ?? 0}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs text-slate-400 mt-2 pt-2 border-t border-slate-800">
-                  <span className="uppercase tracking-wider font-medium">{t("profile.missedPayments", "Missed Payments")}:</span>
-                  <span className={`font-bold font-mono ${Number(profile?.missed_payments) > 0 ? "text-rose-400" : "text-emerald-400"}`}>
-                    {profile?.missed_payments ?? 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Financial Goal View */}
-            <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-              <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5 mb-1.5">
-                <Target className="w-3.5 h-3.5 text-indigo-400" />
-                {t("profile.financialGoal", "Primary Financial Goal")}
-              </span>
-              <div className="text-sm text-slate-200 font-medium leading-relaxed">
-                {profile?.financial_goal || <span className="text-slate-500 italic">{t("profile.notProvided", "Not specified yet. Click 'Edit Profile' to set your primary goal.")}</span>}
-              </div>
-            </div>
-
-            {/* View Mode Edit Trigger Footer */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800">
-              <span className="text-xs text-slate-400">
-                {t("profile.subtitle", "Want to update your income, limit, or loan figures?")}
-              </span>
               <button
                 type="button"
                 onClick={handleStartEdit}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
+                className="self-start sm:self-auto px-4 py-2 rounded-xl text-xs font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                <Edit2 className="w-4 h-4" />
+                <Edit2 className="w-3.5 h-3.5" />
                 <span>{t("profile.editProfile", "Edit Profile")}</span>
               </button>
             </div>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* CIBIL Score View */}
+                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
+                    {t("profile.currentScore", "Current CIBIL Score")}
+                  </span>
+                  <div className="mt-2 text-2xl font-black text-white font-mono">
+                    {profile?.credit_score !== null && profile?.credit_score !== undefined ? (
+                      <span className="text-emerald-400">{profile.credit_score}</span>
+                    ) : (
+                      <span className="text-slate-500 text-sm font-normal">{t("profile.notRecorded", "Not Recorded")}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Monthly Income View */}
+                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                    <IndianRupee className="w-3.5 h-3.5 text-emerald-400" />
+                    {t("profile.monthlyIncome", "Monthly In-Hand Income")}
+                  </span>
+                  <div className="mt-2 text-xl font-bold text-white">
+                    ₹{Number(profile?.monthly_income || 0).toLocaleString("en-IN")}
+                  </div>
+                </div>
+
+                {/* Total Debt View */}
+                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-amber-400" />
+                    {t("profile.totalDebt", "Total Debt / Loan Principal")}
+                  </span>
+                  <div className="mt-2 text-xl font-bold text-white">
+                    ₹{Number(profile?.total_debt || 0).toLocaleString("en-IN")}
+                  </div>
+                </div>
+
+                {/* Credit Limit View */}
+                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-teal-400" />
+                    {t("profile.creditLimit", "Sanctioned Credit Limit")}
+                  </span>
+                  <div className="mt-2 text-xl font-bold text-teal-400">
+                    ₹{Number(profile?.credit_limit || 0).toLocaleString("en-IN")}
+                  </div>
+                </div>
+
+                {/* Card Balance View */}
+                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
+                    {t("profile.cardBalance", "Current Card Balance")}
+                  </span>
+                  <div className="mt-2 text-xl font-bold text-white">
+                    ₹{Number(profile?.credit_card_balance || 0).toLocaleString("en-IN")}
+                  </div>
+                </div>
+
+                {/* Active Loans & Missed Payments */}
+                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <div className="flex justify-between items-center text-xs text-slate-400">
+                    <span className="uppercase tracking-wider font-medium">{t("profile.activeLoans", "Active Loans")}:</span>
+                    <span className="font-bold text-white font-mono">{profile?.active_loans ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-slate-400 mt-2 pt-2 border-t border-slate-800">
+                    <span className="uppercase tracking-wider font-medium">{t("profile.missedPayments", "Missed Payments")}:</span>
+                    <span className={`font-bold font-mono ${Number(profile?.missed_payments) > 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                      {profile?.missed_payments ?? 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Goal View */}
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                <span className="text-xs text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5 mb-1.5">
+                  <Target className="w-3.5 h-3.5 text-indigo-400" />
+                  {t("profile.financialGoal", "Primary Financial Goal")}
+                </span>
+                <div className="text-sm text-slate-200 font-medium leading-relaxed">
+                  {profile?.financial_goal || <span className="text-slate-500 italic">{t("profile.notProvided", "Not specified yet. Click 'Edit Profile' to set your primary goal.")}</span>}
+                </div>
+              </div>
+
+              {/* View Mode Edit Trigger Footer */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800">
+                <span className="text-xs text-slate-400">
+                  {t("profile.subtitle", "Want to update your income, limit, or loan figures?")}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleStartEdit}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  <span>{t("profile.editProfile", "Edit Profile")}</span>
+                </button>
+              </div>
+            </div>
           </div>
-        ) : (
-          /* ================= EDIT MODE ================= */
-          <form onSubmit={handleUpdate} className="space-y-6 text-xs sm:text-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+        </div>
+      ) : (
+        /* ==================== EDIT MODE ==================== */
+        <form onSubmit={handleUpdate} className="space-y-6 sm:space-y-8">
+          {/* Section 1: User Information (Edit Mode) */}
+          <div className="bg-slate-900/80 border border-indigo-500/30 rounded-2xl p-5 sm:p-6 shadow-xl">
+            <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-800">
+              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>{t("profile.accountDetails", "Account Details")}</span>
+              </h2>
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                {t("profile.editingMode", "Editing Mode")}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+              {/* Full Name Input */}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>{t("profile.fullNameLabel", "Full Name")}</span>
+                  <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  id="profile-name-input"
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Email Address Input */}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{t("profile.emailLabel", "Email Address")}</span>
+                  <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  id="profile-email-input"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Mobile Number Input */}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-teal-400" />
+                  <span>{t("profile.mobileLabel", "Mobile Number")}</span>
+                </label>
+                <input
+                  id="profile-mobile-input"
+                  type="tel"
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value)}
+                  placeholder="10-digit mobile (e.g. 9876543210)"
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Financial Indicators (Edit Mode) */}
+          <div className="bg-slate-900/80 border border-indigo-500/30 rounded-2xl p-5 sm:p-6 shadow-xl">
+            <div className="pb-4 mb-5 border-b border-slate-800">
+              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <IndianRupee className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{t("profile.indicatorsTitle", "Financial Indicators (Used for CIBIL & DTI Calculations)")}</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                {t("profile.indicatorsDesc", "Keep these updated so your credit analytics and AI coaching remain accurate.")}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 text-xs sm:text-sm">
+              {/* CIBIL Score */}
               <div>
                 <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider">
                   {t("profile.currentScore", "Current CIBIL Score (300 - 900)")}
                 </label>
                 <input
+                  id="profile-score-input"
                   type="number"
                   min={300}
                   max={900}
@@ -390,95 +544,103 @@ export default function Profile() {
                 />
               </div>
 
+              {/* Monthly Income */}
               <div>
                 <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider">
                   {t("profile.monthlyIncome", "Monthly In-Hand Income (₹)")}
                 </label>
                 <input
+                  id="profile-income-input"
                   type="number"
                   min={0}
                   value={income}
                   onChange={(e) => setIncome(e.target.value)}
-                  required
                   className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
+              {/* Total Debt */}
               <div>
                 <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider">
                   {t("profile.totalDebt", "Total Debt / Loan Principal (₹)")}
                 </label>
                 <input
+                  id="profile-debt-input"
                   type="number"
                   min={0}
                   value={debt}
                   onChange={(e) => setDebt(e.target.value)}
-                  required
                   className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
+              {/* Credit Limit */}
               <div>
                 <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider">
                   {t("profile.creditLimit", "Total Sanctioned Credit Card Limit (₹)")}
                 </label>
                 <input
+                  id="profile-limit-input"
                   type="number"
                   min={0}
                   value={limit}
                   onChange={(e) => setLimit(e.target.value)}
-                  required
                   className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
+              {/* Card Balance */}
               <div>
                 <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider">
                   {t("profile.cardBalance", "Current Card Outstanding Balance (₹)")}
                 </label>
                 <input
+                  id="profile-balance-input"
                   type="number"
                   min={0}
                   value={balance}
                   onChange={(e) => setBalance(e.target.value)}
-                  required
                   className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
+              {/* Active Loans */}
               <div>
                 <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider">
                   {t("profile.activeLoans", "Active Loans Count")}
                 </label>
                 <input
+                  id="profile-loans-input"
                   type="number"
                   min={0}
                   value={activeLoans}
                   onChange={(e) => setActiveLoans(e.target.value)}
-                  required
                   className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
+              {/* Missed Payments */}
               <div>
                 <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider">
                   {t("profile.missedPayments", "Past Missed / Overdue Payments")}
                 </label>
                 <input
+                  id="profile-missed-input"
                   type="number"
                   min={0}
                   value={missedPayments}
                   onChange={(e) => setMissedPayments(e.target.value)}
-                  required
                   className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
+              {/* Financial Goal */}
               <div>
                 <label className="block font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wider">
                   {t("profile.financialGoal", "Primary Financial Goal")}
                 </label>
                 <input
+                  id="profile-goal-input"
                   type="text"
                   value={financialGoal}
                   onChange={(e) => setFinancialGoal(e.target.value)}
@@ -489,7 +651,7 @@ export default function Profile() {
             </div>
 
             {/* EDIT MODE ACTION BUTTONS */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-slate-800">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-6 mt-6 border-t border-slate-800">
               <button
                 id="cancel-edit-btn"
                 type="button"
@@ -505,15 +667,15 @@ export default function Profile() {
                 id="save-changes-btn"
                 type="submit"
                 disabled={saving}
-                className="px-6 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-all disabled:opacity-60 cursor-pointer"
+                className="px-6 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-all disabled:opacity-60 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Save className="w-4 h-4" />
                 <span>{saving ? t("profile.savingChanges", "Saving Changes...") : t("profile.saveChanges", "Save Changes")}</span>
               </button>
             </div>
-          </form>
-        )}
-      </div>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

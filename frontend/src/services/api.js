@@ -65,6 +65,10 @@ export const authAPI = {
     const response = await api.get("/api/auth/me");
     return response.data;
   },
+  updateProfile: async (userData) => {
+    const response = await api.put("/api/auth/profile", userData);
+    return response.data;
+  },
 };
 
 export const creditAPI = {

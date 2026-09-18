@@ -24,7 +24,7 @@ from models import (
     Recommendation,
 )
 
-from schemas import UserCreate, UserLogin, UserResponse, FirebaseLoginRequest
+from schemas import UserCreate, UserLogin, UserResponse, FirebaseLoginRequest, UserUpdate
 from credit_schemas import (
     CreditProfileCreate,
     CreditProfileResponse,
@@ -310,10 +310,54 @@ def firebase_login(
 
 
 @api_router.get("/auth/me", response_model=UserResponse)
+@app.get("/auth/me", response_model=UserResponse)
+@api_router.get("/users/me", response_model=UserResponse)
 @app.get("/users/me", response_model=UserResponse)
 def get_my_profile(
     current_user: User = Depends(get_current_user)
 ):
+    return current_user
+
+
+@api_router.put("/auth/profile", response_model=UserResponse)
+@app.put("/auth/profile", response_model=UserResponse)
+@api_router.put("/auth/me", response_model=UserResponse)
+@app.put("/auth/me", response_model=UserResponse)
+@api_router.put("/users/me", response_model=UserResponse)
+@app.put("/users/me", response_model=UserResponse)
+def update_user_profile(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update registered user's basic profile (Name, Email, Phone Number).
+    Protected by JWT. Rejects duplicate emails.
+    """
+    if user_update.email and user_update.email.lower() != current_user.email.lower():
+        existing_user = db.query(User).filter(
+            User.email == user_update.email,
+            User.id != current_user.id
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=400,
+                detail="Email already registered"
+            )
+        current_user.email = user_update.email
+
+    if user_update.name is not None:
+        current_user.name = user_update.name
+
+    new_phone = user_update.phone_number or user_update.mobile
+    if new_phone is not None:
+        current_user.phone_number = new_phone
+    elif user_update.phone_number == "" or user_update.mobile == "":
+        current_user.phone_number = None
+
+    db.commit()
+    db.refresh(current_user)
+
     return current_user
 
 

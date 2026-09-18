@@ -133,6 +133,33 @@ export function AuthProvider({ children }) {
     return sessionUser;
   };
 
+  const updateUser = (userData) => {
+    setUser((prev) => {
+      const updated = { ...prev, ...userData };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const refreshUser = async () => {
+    try {
+      let userData;
+      try {
+        userData = await authAPI.getMe();
+      } catch (e) {
+        const fallbackRes = await api.get("/users/me");
+        userData = fallbackRes.data;
+      }
+      if (userData) {
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+      }
+      return userData;
+    } catch (err) {
+      console.error("Failed to refresh user:", err);
+    }
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -150,6 +177,8 @@ export function AuthProvider({ children }) {
         login,
         register,
         loginWithFirebaseUser,
+        updateUser,
+        refreshUser,
         logout,
       }}
     >
