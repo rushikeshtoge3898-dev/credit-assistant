@@ -97,17 +97,9 @@ export default function AIAssistant() {
             summary: res.data.summary,
             health_grade: res.data.cibil_health_status || "Good",
             cibil_health_score: res.data.cibil_health_score ?? null,
-            key_positive_factors: res.data.strengths || [
-              "Consistently on-time payment track record across tradelines",
-              "Balanced debt-to-income leverage within normal limits"
-            ],
-            critical_risk_factors: res.data.risk_factors || [
-              "Monitor revolving card balance to maintain sub-30% utilization"
-            ],
-            immediate_action_items: res.data.actionable_steps || [
-              "Clear credit card dues before statement billing date",
-              "Set auto-debit on total bill amount"
-            ],
+            key_positive_factors: res.data.strengths || [],
+            critical_risk_factors: res.data.risk_factors || [],
+            immediate_action_items: res.data.actionable_steps || [],
             long_term_strategy: [
               "Maintain credit accounts for at least 3+ years to establish seasoned history",
               "Diversify credit mix with a secured vehicle or home loan when needed"
@@ -150,7 +142,7 @@ export default function AIAssistant() {
       // Add AI report announcement in chat
       const summaryMsg = {
         role: "assistant",
-        content: `**New AI Credit Diagnostic Complete!**\n\n- **Health Grade**: ${analysisData.health_grade}\n- **Summary**: ${analysisData.summary}\n\nReview your positive factors, risk items, and long-term roadmap on the diagnostic panel. Ask me below if you need step-by-step guidance!`,
+        content: `**${t("ai.diagnosticReport", "CIBIL Diagnostic Report")}**\n\n- **${t("dashboard.healthGrade", "Credit Health")}**: ${analysisData.health_grade}\n- **${t("ai.summaryTitle", "Summary")}**: ${analysisData.summary}\n\n${t("ai.disclaimer", "Review your positive factors, risk items, and long-term roadmap on the diagnostic panel.")}`,
         suggestions: analysisData.immediate_action_items?.slice(0, 3) || [
           "How do I clear card balance fastest?",
           "What is the best way to handle loans?"
@@ -219,7 +211,7 @@ export default function AIAssistant() {
       console.error("Chat error:", err);
       const errorTextByLang = {
         mr: "AI सल्लागार सेवेमध्ये तात्पुरती अडचण आली आहे. तुमचा डेटा सुरक्षित आहे. कृपया पुन्हा विचारून पहा किंवा 'AI क्रेडिट चाचणी चालवा' वर क्लिक करा.",
-        hi: "AI सलाहकार सेवा में अस्थायी समस्या आई है। आपका डेटा सुरक्षित है। कृपया पुनः पूछें या 'AI क्रेडिट चाचणी चालवा' पर क्लिक करें।",
+        hi: "AI सलाहकार सेवा में अस्थायी समस्या आई है। आपका डेटा सुरक्षित है। कृपया पुनः पूछें या 'AI क्रेडिट डायग्नोस्टिक चलाएं' पर क्लिक करें।",
         en: "I encountered a temporary communication glitch with the primary AI engine. Your credit data is safe. Please ask again or click 'Run AI Credit Diagnostic' to refresh.",
       };
       const fallbackSuggestionsByLang = {
@@ -267,8 +259,8 @@ export default function AIAssistant() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <Sparkles className="w-7 h-7 text-indigo-400" />
-            {t("ai.title", "AI Credit Advisor")}
+            <Sparkles className="w-7 h-7 text-indigo-400 shrink-0" />
+            <span>{t("ai.title", "AI Credit Advisor")}</span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             {t("ai.subtitle", "Powered by Google Gemini with domain awareness of Indian banking, RBI norms, and CIBIL scoring.")}
@@ -316,18 +308,18 @@ export default function AIAssistant() {
         </button>
       </div>
 
-      {/* Main Grid: Chat Assistant (A) + Comprehensive AI Diagnostic Panel (B - G) */}
+      {/* Main Grid: Chat Assistant + Comprehensive AI Diagnostic Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Chat Assistant (A) */}
+        {/* Left Column: Chat Assistant */}
         <div className={`lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl flex flex-col h-[650px] sm:h-[700px] shadow-2xl relative overflow-hidden ${activeTab === "diagnostic" ? "hidden lg:flex" : "flex"}`}>
           {/* Chat Header */}
           <div className="px-5 py-3.5 bg-slate-950/60 border-b border-slate-800/80 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2 text-slate-300 font-semibold">
               <Bot className="w-4 h-4 text-indigo-400" />
-              <span>Interactive Credit Advisor Chat</span>
+              <span>{t("ai.interactiveTitle", "Interactive Credit Advisor Chat")}</span>
             </div>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Gemini 2.0 / Flash Active
+              {t("ai.modelActive", "Gemini 2.0 / Flash Active")}
             </span>
           </div>
 
@@ -381,7 +373,7 @@ export default function AIAssistant() {
                   <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" />
                   <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]" />
                   <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.4s]" />
-                  <span className="ml-2 font-mono text-[11px]">Gemini is reasoning through your credit profile...</span>
+                  <span className="ml-2 font-mono text-[11px]">{t("ai.reasoningMessage", "Gemini is reasoning through your credit profile...")}</span>
                 </div>
               </div>
             )}
@@ -400,7 +392,7 @@ export default function AIAssistant() {
             >
               <input
                 type="text"
-                placeholder="Ask about your CIBIL score, cards, EMI relief, or dispute processes..."
+                placeholder={t("ai.inputPlaceholder", "Ask about your CIBIL score, cards, EMI relief, or dispute processes...")}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={loading}
@@ -417,7 +409,7 @@ export default function AIAssistant() {
           </div>
         </div>
 
-        {/* Right Column: AI Diagnostic Report Panel (C - G) */}
+        {/* Right Column: AI Diagnostic Report Panel */}
         <div className={`lg:col-span-5 space-y-6 ${activeTab === "chat" ? "hidden lg:block" : "block"}`}>
           <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             {/* Header & Grade */}
@@ -425,31 +417,35 @@ export default function AIAssistant() {
               <div>
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                  CIBIL Diagnostic Report
+                  <span>{t("ai.diagnosticReport", "CIBIL Diagnostic Report")}</span>
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">Real-time structured evaluation</p>
+                <p className="text-xs text-slate-400 mt-0.5">{t("ai.structuredEval", "Real-time structured evaluation")}</p>
               </div>
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">
                 {diagnostic?.health_grade || "Good"}
               </span>
             </div>
 
-            {/* C. AI Credit-Health Summary */}
+            {/* AI Credit-Health Summary */}
             <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-1.5">
               <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
-                Executive Credit Health Summary
+                {t("ai.summaryTitle", "Executive Credit Health Summary")}
               </span>
               <p className="text-xs text-slate-300 leading-relaxed">
                 {diagnostic?.summary ||
-                  "Your credit profile demonstrates stable fundamentals with positive payment timeliness. Bringing revolving card utilization below 30% remains the primary lever to cross into the prime 750+ tier."}
+                  (currentLanguage === "mr"
+                    ? "तुमचे क्रेडिट प्रोफाइल सकारात्मक पेमेंट वेळेसह स्थिर मूलभूत गोष्टी दर्शवते. कार्ड युटिलायझेशन ३०% च्या खाली आणणे हा ७५०+ प्राइम श्रेणीत जाण्यासाठी प्राथमिक मार्ग आहे."
+                    : currentLanguage === "hi"
+                    ? "आपकी क्रेडिट प्रोफाइल समय पर भुगतान के साथ स्थिर बुनियादी बातों को दर्शाती है। कार्ड उपयोग को ३०% से नीचे लाना ७५०+ प्राइम श्रेणी में प्रवेश करने का प्राथमिक उपाय है।"
+                    : "Your credit profile demonstrates stable fundamentals with positive payment timeliness. Bringing revolving card utilization below 30% remains the primary lever to cross into the prime 750+ tier.")}
               </p>
             </div>
 
-            {/* D. Positive Factors */}
+            {/* Positive Factors */}
             <div>
               <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5 mb-2">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
-                Key Positive Factors
+                <span>{t("ai.positiveFactors", "Key Positive Factors")}</span>
               </div>
               <ul className="space-y-1.5">
                 {(diagnostic?.key_positive_factors || diagnostic?.strengths || [
@@ -465,11 +461,11 @@ export default function AIAssistant() {
               </ul>
             </div>
 
-            {/* E. Risk Factors */}
+            {/* Risk Factors */}
             <div>
               <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5 mb-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
-                Critical Risk Factors & Cautions
+                <span>{t("ai.riskFactors", "Critical Risk Factors & Cautions")}</span>
               </div>
               <ul className="space-y-1.5">
                 {(diagnostic?.critical_risk_factors || diagnostic?.risk_factors || [
@@ -484,16 +480,16 @@ export default function AIAssistant() {
               </ul>
             </div>
 
-            {/* F. Immediate Actions (Interactive Checklist) */}
+            {/* Immediate Actions */}
             <div>
               <div className="text-xs font-bold text-slate-200 flex items-center justify-between mb-2">
                 <span className="flex items-center gap-1.5">
                   <Zap className="w-4 h-4 text-indigo-400" />
-                  Immediate Action Items
+                  <span>{t("ai.actionItems", "Immediate Action Items")}</span>
                 </span>
                 {dbRecs.length > 0 && (
                   <span className="text-[10px] text-slate-500 font-mono">
-                    {dbRecs.filter((r) => r.is_completed).length}/{dbRecs.length} Done
+                    {dbRecs.filter((r) => r.is_completed).length}/{dbRecs.length} {t("ai.doneCount", "Done")}
                   </span>
                 )}
               </div>
@@ -541,11 +537,11 @@ export default function AIAssistant() {
               )}
             </div>
 
-            {/* G. Long-Term Strategy */}
+            {/* Long-Term Strategy */}
             <div>
               <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5 mb-2">
                 <Compass className="w-4 h-4 text-purple-400" />
-                Long-Term Credit Strategy
+                <span>{t("ai.longTermStrategy", "Long-Term Credit Strategy")}</span>
               </div>
               <ul className="space-y-1.5">
                 {(diagnostic?.long_term_strategy || [
@@ -565,8 +561,7 @@ export default function AIAssistant() {
             <div className="pt-3 border-t border-slate-800/80 text-[10px] text-slate-500 flex items-start gap-1.5">
               <Info className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
               <span>
-                {diagnostic?.educational_disclaimer ||
-                  "Educational credit advisory model reflecting CIBIL TransUnion standards. Does not constitute formal legal or financial advice."}
+                {t("ai.disclaimer", "Educational credit advisory model reflecting CIBIL TransUnion standards. Does not constitute formal legal or financial advice.")}
               </span>
             </div>
           </div>

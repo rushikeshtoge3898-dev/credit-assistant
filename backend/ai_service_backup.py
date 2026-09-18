@@ -645,9 +645,9 @@ def generate_ai_credit_analysis(
     )
 
     disclaimer = (
-        "Credit analysis is based on the information available 
- in Credit Assistant and is not an official credit bureau report.
- )
+        "Credit analysis is based on the information available "
+        "in Credit Assistant and is not an official credit bureau report."
+    )
 
 
     prompt = f"""

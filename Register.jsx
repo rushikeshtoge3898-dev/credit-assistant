@@ -33,13 +33,7 @@ function Register() {
 
     const cleanPhone = mobileNumber.trim().replace(/\D/g, "");
     if (!cleanPhone || cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setError(
-        currentLanguage === "mr"
-          ? "कृपया वैध १०-अंकी भारतीय मोबाईल नंबर प्रविष्ट करा (उदा. 9876543210)."
-          : currentLanguage === "hi"
-          ? "कृपया वैध १० अंकों का भारतीय मोबाइल नंबर दर्ज करें (उदा. 9876543210)।"
-          : "Please enter a valid 10-digit Indian mobile number starting with 6-9."
-      );
+      setError(t("auth.validPhoneError", "Please enter a valid 10-digit Indian mobile number starting with 6-9."));
       return;
     }
 
@@ -51,7 +45,7 @@ function Register() {
       navigate("/dashboard");
     } catch (err) {
       console.error("Registration failed:", err);
-      const msg = err.response?.data?.detail || "Failed to create account. Email may already be in use.";
+      const msg = err.response?.data?.detail || t("auth.accountCreateError", "Failed to create account. Email may already be in use.");
       setError(msg);
     } finally {
       setLoading(false);
@@ -181,7 +175,7 @@ function Register() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min. 6 characters"
+                  placeholder={t("auth.minPasswordPlaceholder", "Min. 6 characters")}
                   required
                   className="block w-full pl-10 pr-3.5 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
                 />

@@ -53,7 +53,7 @@ function Login() {
       console.error("Login failed:", err);
       const msg =
         err.response?.data?.detail ||
-        "Invalid email or password. Please check your credentials.";
+        t("auth.invalidCredentials", "Invalid email or password. Please check your credentials.");
       setError(msg);
     } finally {
       setLoading(false);
@@ -97,7 +97,7 @@ function Login() {
     e.preventDefault();
     setResetStatus({ error: "", success: "" });
     if (!resetEmail.trim()) {
-      setResetStatus({ error: "Please enter your registered email address.", success: "" });
+      setResetStatus({ error: t("auth.enterRegisteredEmail", "Please enter your registered email address."), success: "" });
       return;
     }
 
@@ -110,7 +110,7 @@ function Login() {
       });
     } catch (err) {
       setResetStatus({
-        error: err.message || "Failed to dispatch reset instructions. Please verify your email.",
+        error: err.message || t("auth.resetFailed", "Failed to dispatch reset instructions. Please verify your email."),
         success: "",
       });
     } finally {
@@ -337,7 +337,7 @@ function Login() {
                   type="email"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  placeholder="name@example.com"
+                  placeholder={t("auth.emailPlaceholder", "name@example.com")}
                   required
                   className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />

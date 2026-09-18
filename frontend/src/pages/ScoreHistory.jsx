@@ -47,7 +47,7 @@ export default function ScoreHistory() {
       setHistory(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch score history:", err);
-      setError("Unable to load score trend history. Please retry.");
+      setError(t("scoreHistory.loadingHistory", "Unable to load score trend history. Please retry."));
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ export default function ScoreHistory() {
     try {
       const scoreVal = parseInt(newScore);
       if (isNaN(scoreVal) || scoreVal < 300 || scoreVal > 900) {
-        setError("Please enter a valid CIBIL score between 300 and 900.");
+        setError(t("scoreHistory.snapshotError", "Please enter a valid CIBIL score between 300 and 900."));
         setSubmitting(false);
         return;
       }
@@ -78,12 +78,12 @@ export default function ScoreHistory() {
         await api.post("/credit/score-history", { credit_score: scoreVal });
         await api.put("/credit/profile", { credit_score: scoreVal });
       }
-      setMessage(`Successfully recorded CIBIL snapshot of ${scoreVal}!`);
+      setMessage(t("scoreHistory.snapshotSuccess", "Successfully recorded CIBIL snapshot!"));
       setNewScore("");
       fetchHistory();
     } catch (err) {
       console.error("Error adding score:", err);
-      setError("Failed to log score snapshot. Ensure score is between 300 and 900.");
+      setError(t("scoreHistory.snapshotError", "Failed to log score snapshot. Ensure score is between 300 and 900."));
     } finally {
       setSubmitting(false);
     }
@@ -106,12 +106,10 @@ export default function ScoreHistory() {
       change: delta,
       category:
         item.credit_score >= 750
-          ? "Prime / Excellent"
+          ? t("dashboard.primeTier", "Prime / Excellent")
           : item.credit_score >= 700
-          ? "Good"
-          : item.credit_score >= 650
-          ? "Fair"
-          : "Needs Care",
+          ? t("dashboard.good", "Good")
+          : t("dashboard.needsAttention", "Needs Care"),
       index: idx + 1,
     };
   });
@@ -131,14 +129,14 @@ export default function ScoreHistory() {
         <div className="bg-slate-900 border border-slate-700 p-3.5 rounded-xl shadow-2xl text-xs space-y-1">
           <div className="text-slate-400 font-medium">{label}</div>
           <div className="text-base font-black text-white flex items-center gap-2">
-            <span>{data.score} CIBIL Score</span>
+            <span>{data.score} {t("scoreHistory.score", "CIBIL Score")}</span>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
               {data.category}
             </span>
           </div>
           {data.previousScore !== null && (
             <div className="text-slate-400 text-[11px] pt-1.5 border-t border-slate-800 flex items-center justify-between gap-3">
-              <span>vs Previous ({data.previousScore}):</span>
+              <span>{t("scoreHistory.vsPrevious", "vs Previous")} ({data.previousScore}):</span>
               <span className={`font-bold ${data.change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                 {data.change >= 0 ? `+${data.change}` : data.change} pts
               </span>
@@ -206,7 +204,7 @@ export default function ScoreHistory() {
           <div className="text-xs font-semibold mt-1">
             {hasScore ? (
               <span className={currentScore >= 750 ? "text-emerald-400" : currentScore >= 700 ? "text-teal-400" : "text-amber-400"}>
-                {currentScore >= 750 ? "Prime / Excellent" : currentScore >= 700 ? "Good" : "Needs Care"}
+                {currentScore >= 750 ? t("dashboard.primeTier", "Prime / Excellent") : currentScore >= 700 ? t("dashboard.good", "Good") : t("dashboard.needsAttention", "Needs Care")}
               </span>
             ) : (
               <span className="text-slate-500">{t("dashboard.notAvailable", "Not Available")}</span>
@@ -215,48 +213,48 @@ export default function ScoreHistory() {
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-lg">
-          <div className="text-xs text-slate-400">Previous Snapshot Score</div>
+          <div className="text-xs text-slate-400">{t("scoreHistory.prevScoreCard", "Previous Snapshot Score")}</div>
           <div className="text-2xl font-black text-slate-300 mt-1">
-            {previousScore !== null ? previousScore : "Baseline"}
+            {previousScore !== null ? previousScore : t("scoreHistory.baseline", "Baseline")}
           </div>
           <div className="text-xs text-slate-400 mt-1">
-            {history.length >= 2 ? "Last recorded check" : "First logged snapshot"}
+            {history.length >= 2 ? t("scoreHistory.lastCheck", "Last recorded check") : t("scoreHistory.firstSnapshot", "First logged snapshot")}
           </div>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-lg">
-          <div className="text-xs text-slate-400">Recent Change</div>
+          <div className="text-xs text-slate-400">{t("scoreHistory.recentChangeCard", "Recent Change")}</div>
           <div className="text-2xl font-black mt-1 flex items-center gap-1">
             {previousScore !== null ? (
               recentChange >= 0 ? (
                 <span className="text-emerald-400 flex items-center">
-                  <ArrowUp className="w-5 h-5" /> +{recentChange} pts
+                  <ArrowUp className="w-5 h-5" /> +{recentChange} {t("common.pts", "pts")}
                 </span>
               ) : (
                 <span className="text-rose-400 flex items-center">
-                  <ArrowDown className="w-5 h-5" /> {recentChange} pts
+                  <ArrowDown className="w-5 h-5" /> {recentChange} {t("common.pts", "pts")}
                 </span>
               )
             ) : (
-              <span className="text-slate-400 text-lg font-bold">Stable</span>
+              <span className="text-slate-400 text-lg font-bold">{t("scoreHistory.stable", "Stable")}</span>
             )}
           </div>
           <div className="text-xs text-slate-400 mt-1">
-            vs prior snapshot
+            {t("scoreHistory.vsPrior", "vs prior snapshot")}
           </div>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-lg">
-          <div className="text-xs text-slate-400">CIBIL Prime Target</div>
+          <div className="text-xs text-slate-400">{t("scoreHistory.primeTargetCard", "CIBIL Prime Target")}</div>
           <div className="text-2xl font-black text-emerald-400 mt-1">
             750+
           </div>
           <div className="text-xs text-slate-400 mt-1">
             {hasScore
               ? currentScore >= 750
-                ? "Target Achieved!"
-                : `${750 - currentScore} pts needed`
-              : "750 Prime Milestone"}
+                ? t("scoreHistory.targetAchieved", "Target Achieved!")
+                : `${750 - currentScore} ${t("scoreHistory.ptsNeeded", "pts needed")}`
+              : t("scoreHistory.primeMilestone", "750 Prime Milestone")}
           </div>
         </div>
       </div>
@@ -267,17 +265,17 @@ export default function ScoreHistory() {
           <div>
             <h3 className="text-base font-bold text-white">{t("scoreHistory.scoreTrajectory", "Score Progression Curve")}</h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              CIBIL benchmark line set at 750 (Prime Approval Threshold)
+              {t("scoreHistory.benchmarkSubtitle", "CIBIL benchmark line set at 750 (Prime Approval Threshold)")}
             </p>
           </div>
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-indigo-500" />
-              <span className="text-slate-300">Your Score</span>
+              <span className="text-slate-300">{t("scoreHistory.yourScoreLegend", "Your Score")}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-0.5 bg-emerald-400" />
-              <span className="text-slate-400">750 Benchmark</span>
+              <span className="text-slate-400">{t("scoreHistory.benchmarkLegend", "750 Benchmark")}</span>
             </div>
           </div>
         </div>
@@ -335,7 +333,7 @@ export default function ScoreHistory() {
             {t("scoreHistory.logScore", "Log New CIBIL Score")}
           </h3>
           <p className="text-xs text-slate-400 mb-5">
-            Checked your latest report from CIBIL, OneScore, or your bank? Add it here.
+            {t("scoreHistory.logScoreDesc", "Checked your latest report from CIBIL, OneScore, or your bank? Add it here.")}
           </p>
 
           {message && (
@@ -374,7 +372,7 @@ export default function ScoreHistory() {
               disabled={submitting}
               className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs shadow-lg shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50"
             >
-              {submitting ? t("scoreHistory.savingScore", "Recording...") : t("scoreHistory.logScore", "Record Score")}
+              {submitting ? t("scoreHistory.savingScore", "Recording...") : t("scoreHistory.recordScoreBtn", "Record Score")}
             </button>
           </form>
         </div>
@@ -386,7 +384,7 @@ export default function ScoreHistory() {
             {t("scoreHistory.timelineTitle", "Snapshot Timeline")} ({history.length})
           </h3>
           <p className="text-xs text-slate-400 mb-5">
-            Log of historical CIBIL data points and trajectory milestones.
+            {t("scoreHistory.timelineDesc", "Log of historical CIBIL data points and trajectory milestones.")}
           </p>
 
           {history.length > 0 ? (
@@ -424,16 +422,16 @@ export default function ScoreHistory() {
                               ? "bg-indigo-500/10 text-indigo-400"
                               : "bg-amber-500/10 text-amber-400"
                           }`}>
-                            {item.credit_score >= 750 ? "Prime" : item.credit_score >= 700 ? "Good" : "Fair"}
+                            {item.credit_score >= 750 ? t("dashboard.primeTier", "Prime") : item.credit_score >= 700 ? t("dashboard.good", "Good") : t("dashboard.fair", "Fair")}
                           </span>
                         </td>
                         <td className="py-3 px-3">
                           {delta !== null ? (
                             <span className={`font-bold font-mono ${delta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                              {delta >= 0 ? `+${delta}` : delta} pts
+                              {delta >= 0 ? `+${delta}` : delta} {t("common.pts", "pts")}
                             </span>
                           ) : (
-                            <span className="text-slate-500 font-mono">Baseline</span>
+                            <span className="text-slate-500 font-mono">{t("scoreHistory.baseline", "Baseline")}</span>
                           )}
                         </td>
                       </tr>

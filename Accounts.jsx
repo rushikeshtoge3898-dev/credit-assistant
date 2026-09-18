@@ -73,7 +73,7 @@ export default function Accounts() {
       setPayments(payData);
     } catch (err) {
       console.error("Failed to fetch accounts/payments:", err);
-      setError("Unable to load credit tradelines. Please check your connection and retry.");
+      setError(t("accounts.loadingAccounts", "Unable to load credit tradelines. Please check your connection and retry."));
     } finally {
       setLoading(false);
     }
@@ -173,7 +173,7 @@ export default function Accounts() {
   };
 
   const handleDeleteAccount = async (id) => {
-    if (!window.confirm("Are you sure you want to remove this account?")) return;
+    if (!window.confirm(t("accounts.deleteConfirm", "Are you sure you want to remove this account?"))) return;
     try {
       try {
         await accountsAPI.deleteAccount(id);
@@ -217,11 +217,11 @@ export default function Accounts() {
     if (months) {
       const yrs = Math.floor(months / 12);
       const rem = months % 12;
-      if (yrs === 0) return `${rem} mos`;
-      if (rem === 0) return `${yrs} yrs`;
+      if (yrs === 0) return `${rem} ${t("goals.monthsCount", "mos")}`;
+      if (rem === 0) return `${yrs} ${t("dashboard.avgTenure", "yrs")}`;
       return `${yrs}y ${rem}m`;
     }
-    if (date) return `Opened: ${date}`;
+    if (date) return `${t("accounts.openedDate", "Opened")}: ${date}`;
     return null;
   };
 
@@ -229,7 +229,7 @@ export default function Accounts() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-slate-400">
         <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
-        <p className="text-sm">Loading your credit accounts and payment tracker...</p>
+        <p className="text-sm">{t("accounts.loadingAccounts", "Loading your credit accounts and payment tracker...")}</p>
       </div>
     );
   }
@@ -364,12 +364,17 @@ export default function Accounts() {
                       <span className="font-mono">{acc.account_number_masked}</span>
                       <div className="flex items-center gap-1.5">
                         {tenure && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700" title={`Opened: ${acc.opened_date || "N/A"}`}>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700" title={acc.opened_date ? `${t("accounts.openedDate", "Opened")}: ${acc.opened_date}` : "N/A"}>
                             {tenure}
                           </span>
                         )}
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          {acc.payment_status || "Current"}
+                          {acc.payment_status === "Current" ? t("accounts.statusClean", "Current") :
+                           acc.payment_status === "Grace Period" ? t("accounts.statusGrace", "Grace Period") :
+                           acc.payment_status === "Overdue" ? t("accounts.statusOverdue", "Overdue") :
+                           acc.payment_status === "Settled" ? t("accounts.statusSettled", "Settled") :
+                           acc.payment_status === "Closed" ? t("accounts.statusClosed", "Closed") :
+                           acc.payment_status || t("accounts.statusClean", "Current")}
                         </span>
                       </div>
                     </div>
@@ -453,10 +458,10 @@ export default function Accounts() {
           <div>
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              CIBIL Payment History Timeline (35% Factor)
+              {t("accounts.timelineTitle", "CIBIL Payment History Timeline (35% Factor)")}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Banks report your on-time vs delayed monthly payments to TransUnion CIBIL
+              {t("accounts.timelineSubtitle", "Banks report your on-time vs delayed monthly payments to TransUnion CIBIL")}
             </p>
           </div>
         </div>
@@ -478,7 +483,7 @@ export default function Accounts() {
                   <div className="text-xs font-bold text-white">{p.month_year}</div>
                   <div className="text-[11px] font-semibold mt-1 flex items-center gap-1">
                     {isGood ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <AlertCircle className="w-3.5 h-3.5 text-rose-400" />}
-                    {p.status}
+                    {p.status === "On-Time" ? t("accounts.onTime", "On-Time") : p.status === "Delayed" ? t("accounts.delayed", "Delayed") : t("accounts.missed", "Missed")}
                   </div>
                   <div className="text-[10px] text-slate-400 mt-1 font-mono">₹{p.amount_paid?.toLocaleString("en-IN")}</div>
                 </div>
@@ -487,12 +492,12 @@ export default function Accounts() {
           </div>
         ) : (
           <div className="py-8 text-center text-slate-400 space-y-3">
-            <p className="text-xs">No payment history records recorded yet.</p>
+            <p className="text-xs">{t("accounts.noPayments", "No payment history records recorded yet.")}</p>
             <button
               onClick={() => setShowPaymentModal(true)}
               className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
             >
-              <Clock className="w-3.5 h-3.5 text-emerald-400" /> Log First Payment
+              <Clock className="w-3.5 h-3.5 text-emerald-400" /> {t("accounts.logFirstPayment", "Log First Payment")}
             </button>
           </div>
         )}
@@ -571,11 +576,11 @@ export default function Accounts() {
                     onChange={(e) => setPaymentStatus(e.target.value)}
                     className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm"
                   >
-                    <option value="Current">Current (Clean)</option>
-                    <option value="Grace Period">Grace Period</option>
-                    <option value="Overdue">Overdue (30+ DPD)</option>
-                    <option value="Settled">Settled</option>
-                    <option value="Closed">Closed</option>
+                    <option value="Current">{t("accounts.statusClean", "Current (Clean)")}</option>
+                    <option value="Grace Period">{t("accounts.statusGrace", "Grace Period")}</option>
+                    <option value="Overdue">{t("accounts.statusOverdue", "Overdue (30+ DPD)")}</option>
+                    <option value="Settled">{t("accounts.statusSettled", "Settled")}</option>
+                    <option value="Closed">{t("accounts.statusClosed", "Closed")}</option>
                   </select>
                 </div>
               </div>
@@ -631,7 +636,7 @@ export default function Accounts() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Opened Date (Optional)</label>
+                <label className="block font-semibold text-slate-300 mb-1">{t("accounts.openedDateOptional", "Opened Date (Optional)")}</label>
                 <input
                   type="text"
                   value={openedDate}

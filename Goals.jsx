@@ -164,7 +164,7 @@ export default function Goals() {
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-1">
                 <Sliders className="w-3.5 h-3.5" /> {t("goals.whatIfEngine", "What-If Engine")}
               </span>
-              <span className="text-xs text-slate-400 font-mono">Real-time CIBIL Model</span>
+              <span className="text-xs text-slate-400 font-mono">{t("goals.realTimeModel", "Real-time CIBIL Model")}</span>
             </div>
             <h2 className="text-xl font-bold text-white">{t("goals.whatIfEngine", "Interactive Score Simulator")}</h2>
             <p className="text-xs text-slate-400 mt-1">
@@ -189,12 +189,12 @@ export default function Goals() {
                 <div className="text-3xl font-black text-emerald-400 font-mono flex items-baseline gap-1.5">
                   <span>{projectedScore}</span>
                   <span className="text-xs font-bold text-emerald-400 font-sans">
-                    (Est. {totalDelta >= 0 ? `+${totalDelta}` : totalDelta} pts)
+                    (Est. {totalDelta >= 0 ? `+${totalDelta}` : totalDelta} {t("common.pts", "pts")})
                   </span>
                 </div>
               ) : (
                 <div className="text-base font-bold text-emerald-400 font-mono">
-                  {totalDelta >= 0 ? `+${totalDelta}` : totalDelta} pts potential impact
+                  {totalDelta >= 0 ? `+${totalDelta}` : totalDelta} {t("goals.potentialImpact", "pts potential impact")}
                 </div>
               )}
             </div>
@@ -239,7 +239,7 @@ export default function Goals() {
             <div className="flex justify-between text-[11px] text-slate-500 mt-2">
               <span>₹0</span>
               <span className="text-slate-400">
-                New CUR: {simUtil.toFixed(1)}% (was {currentUtil.toFixed(1)}%)
+                {t("goals.newCurLabel", "New CUR:")} {simUtil.toFixed(1)}% ({currentUtil.toFixed(1)}%)
               </span>
               <span>₹{currentBalance.toLocaleString("en-IN")}</span>
             </div>
@@ -252,7 +252,7 @@ export default function Goals() {
                 {t("goals.ontimeTrack", "On-Time Payment Streak")}
               </label>
               <span className="text-sm font-bold text-emerald-400 font-mono">
-                {ontimeMonths} Months
+                {ontimeMonths} {t("goals.monthsCount", "Months")}
               </span>
             </div>
             <input
@@ -264,9 +264,9 @@ export default function Goals() {
               className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
             />
             <div className="flex justify-between text-[11px] text-slate-500 mt-2">
-              <span>1 mo</span>
-              <span className="text-slate-400">Builds clean 35% CIBIL history</span>
-              <span>24 mos</span>
+              <span>1 {t("goals.monthsCount", "mo")}</span>
+              <span className="text-slate-400">{t("goals.cleanHistoryDesc", "Builds clean 35% CIBIL history")}</span>
+              <span>24 {t("goals.monthsCount", "mos")}</span>
             </div>
           </div>
 
@@ -291,7 +291,7 @@ export default function Goals() {
             />
             <div className="flex justify-between text-[11px] text-slate-500 mt-2">
               <span>₹0</span>
-              <span className="text-slate-400">Total Limit: ₹{simulatedLimit.toLocaleString("en-IN")}</span>
+              <span className="text-slate-400">{t("goals.totalLimitEst", "Total Limit:")} ₹{simulatedLimit.toLocaleString("en-IN")}</span>
               <span>₹2,00,000</span>
             </div>
           </div>
@@ -303,7 +303,7 @@ export default function Goals() {
                 {t("goals.hardInquiry", "Apply for New Loan / Card")}
               </label>
               <p className="text-xs text-slate-400 mb-3">
-                Applying creates a Hard Enquiry which may dip score by 5-10 points temporarily.
+                {t("goals.hardInquiryDesc", "Applying creates a Hard Enquiry which may dip score by 5-10 points temporarily.")}
               </p>
             </div>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -314,7 +314,7 @@ export default function Goals() {
                 className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700"
               />
               <span className="text-xs font-medium text-slate-300">
-                Simulate 1 new credit application inquiry
+                {t("goals.simulateInquiryCheck", "Simulate 1 new credit application inquiry")}
               </span>
             </label>
           </div>
@@ -356,7 +356,7 @@ export default function Goals() {
                         <span className="text-sm font-bold text-white">
                           {t("goals.targetScore", "Target Score")}: {g.target_score}
                         </span>
-                        <span className="text-xs text-slate-400 font-mono">by {g.target_date}</span>
+                        <span className="text-xs text-slate-400 font-mono">{t("goals.byDate", "by")} {g.target_date}</span>
                         {isAchieved && (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             {t("goals.completed", "Achieved")}

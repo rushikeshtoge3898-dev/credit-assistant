@@ -169,7 +169,7 @@ export default function CibilScoreGauge({ score = null }) {
       {/* Target marker info */}
       <div className="mt-4 pt-3 border-t border-slate-800/80 w-full flex items-center justify-between text-xs text-slate-400">
         <span>{t("dashboard.goldenTarget", "Golden CIBIL Target:")}</span>
-        <span className="font-semibold text-emerald-400">750+ (Prime)</span>
+        <span className="font-semibold text-emerald-400">{t("dashboard.goldenTargetValue", "750+ (Prime)")}</span>
       </div>
     </div>
   );
