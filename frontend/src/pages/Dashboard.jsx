@@ -7,7 +7,6 @@ import api, {
 } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { guestData } from "../services/guestData";
 import CibilScoreGauge from "../components/CibilScoreGauge";
 import CreditHealthIndicator from "../components/CreditHealthIndicator";
 import {
@@ -32,7 +31,7 @@ import {
 } from "lucide-react";
 
 export default function Dashboard() {
-  const { user, isGuest } = useAuth();
+  const { user } = useAuth();
   const { t } = useLanguage();
 
   const [profile, setProfile] = useState(null);
@@ -51,15 +50,6 @@ export default function Dashboard() {
     setError("");
 
     try {
-      if (isGuest) {
-        setProfile(guestData.getGuestProfile());
-        setAnalytics(guestData.getGuestAnalytics());
-        setScoreHistory(guestData.getGuestScoreHistory());
-        setAccounts(guestData.getGuestAccounts());
-        setRecommendations(guestData.getGuestRecommendations());
-        setLoading(false);
-        return;
-      }
       // 1. Fetch Profile
       let pData = null;
 
@@ -153,35 +143,22 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [isGuest]);
+  }, []);
 
   const handleSeedData = async () => {
     setSeeding(true);
     setSeedSuccess(false);
 
     try {
-      if (isGuest) {
-        guestData.resetGuestData();
-        setSeedSuccess(true);
-        await fetchDashboardData();
-        setTimeout(() => setSeedSuccess(false), 6000);
-        setSeeding(false);
-        return;
-      }
-
       await creditAPI.seedSampleData();
-
       setSeedSuccess(true);
       await fetchDashboardData();
-
       setTimeout(() => setSeedSuccess(false), 6000);
     } catch (err) {
       try {
         await api.post("/credit/seed-sample-data");
-
         setSeedSuccess(true);
         await fetchDashboardData();
-
         setTimeout(() => setSeedSuccess(false), 6000);
       } catch (e) {
         console.error("Failed to seed sample data:", e);
@@ -193,25 +170,9 @@ export default function Dashboard() {
 
   const handleToggleRecommendation = async (rec) => {
     setUpdatingRecId(rec.id);
-
     const nextCompleted = !rec.is_completed;
 
     try {
-      if (isGuest) {
-        guestData.updateGuestRecommendation(rec.id, {
-          is_completed: nextCompleted,
-        });
-        setRecommendations((prev) =>
-          prev.map((r) =>
-            r.id === rec.id
-              ? { ...r, is_completed: nextCompleted }
-              : r
-          )
-        );
-        setUpdatingRecId(null);
-        return;
-      }
-
       try {
         await recommendationsAPI.updateRecommendation(rec.id, {
           is_completed: nextCompleted,
@@ -381,9 +342,6 @@ export default function Dashboard() {
     return `${yrs}y ${mos}m`;
   };
 
-  // Demo Data - strictly only active in guest mode or when sample data was just seeded
-  const isDemoActive = isGuest || seedSuccess;
-
   return (
     <div className="w-full max-w-full space-y-6 sm:space-y-8 overflow-x-hidden">
 
@@ -401,13 +359,6 @@ export default function Dashboard() {
                 <Sparkles className="w-3.5 h-3.5" />
                 {t("dashboard.cibilAssessment", "TransUnion CIBIL India Assessment")}
               </span>
-
-              {isDemoActive && (
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                  <Database className="w-3 h-3 text-amber-400" />
-                  {t("dashboard.demoDataBadge", "DEMO SIMULATION DATA")}
-                </span>
-              )}
 
               {seedSuccess && (
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-fade-in">

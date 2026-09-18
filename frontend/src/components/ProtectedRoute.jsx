@@ -2,7 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute() {
-  const { user, isGuest, loading } = useAuth();
+  const { user, token, loading } = useAuth();
 
   if (loading) {
     return (
@@ -13,8 +13,9 @@ export default function ProtectedRoute() {
     );
   }
 
-  // Allow access if user is authenticated OR guest mode is active
-  if (!isGuest && !user) {
+  // Strict real authenticated check: must have user and token
+  const hasAuthToken = token || localStorage.getItem("token");
+  if (!user || !hasAuthToken) {
     return <Navigate to="/login" replace />;
   }
 

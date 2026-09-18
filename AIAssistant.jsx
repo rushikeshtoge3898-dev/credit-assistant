@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import api, { aiAPI, recommendationsAPI } from "../services/api";
-import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { guestData } from "../services/guestData";
 import {
   Sparkles,
   Send,
@@ -25,7 +23,6 @@ import {
 } from "lucide-react";
 
 export default function AIAssistant() {
-  const { isGuest } = useAuth();
   const { currentLanguage, t } = useLanguage();
 
   const [messages, setMessages] = useState([
@@ -59,36 +56,31 @@ export default function AIAssistant() {
     scrollToBottom();
   }, [messages, loading]);
 
+  // Update initial welcome message and suggestion chips if user switches language before chatting
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].role === "assistant") {
+        return [
+          {
+            role: "assistant",
+            content: t(
+              "ai.welcomeMessage",
+              "Hello! I am your **AI Credit & Financial Advisor**, specialized in the Indian banking and CIBIL credit scoring ecosystem.\n\nI have access to your credit profile, debt-to-income ratio, and card utilization. Ask me anything about boosting your score, clearing debt, or loan eligibility!"
+            ),
+            suggestions: t("ai.suggestions", [
+              "How can I reach a 750+ CIBIL score?",
+              "How does credit utilization affect my approval chances?",
+              "Should I close my unused credit card?",
+            ]),
+          },
+        ];
+      }
+      return prev;
+    });
+  }, [currentLanguage, t]);
+
   const loadInitialData = async () => {
     try {
-      if (isGuest) {
-        setDbRecs(guestData.getGuestRecommendations());
-        const guestProfile = guestData.getGuestProfile();
-        setDiagnostic({
-          summary: "Simulated guest profile demonstrates active Indian credit tradelines with clean repayment history and moderate card utilization.",
-          health_grade: "Good",
-          cibil_health_score: guestProfile?.credit_score ?? null,
-          key_positive_factors: [
-            "100% on-time repayment history across active accounts",
-            "Low debt-to-income leverage within safe limits",
-            "No recent defaults or charge-offs reported to bureaus"
-          ],
-          critical_risk_factors: [
-            "Monitor revolving card balance to maintain sub-30% utilization"
-          ],
-          immediate_action_items: [
-            "Clear credit card dues before statement billing date",
-            "Set auto-debit on total bill amount"
-          ],
-          long_term_strategy: [
-            "Maintain credit accounts for at least 3+ years to establish seasoned history",
-            "Diversify credit mix with a secured vehicle or home loan when needed"
-          ],
-          educational_disclaimer: "Educational credit advisory model based on CIBIL TransUnion scoring methodology."
-        });
-        return;
-      }
-
       // 1. Load persistent recommendations from DB
       try {
         const recList = await recommendationsAPI.getRecommendations();
@@ -133,51 +125,25 @@ export default function AIAssistant() {
 
   useEffect(() => {
     loadInitialData();
-  }, [isGuest]);
+  }, []);
 
   const handleRunDiagnostic = async () => {
     setAnalyzing(true);
     setError("");
     try {
       let analysisData;
-      if (isGuest) {
-        const guestProfile = guestData.getGuestProfile();
-        analysisData = {
-          summary: "Guest profile shows an active HDFC credit card with 29% utilization and an SBI auto loan. Payment behavior is pristine with zero missed dues.",
-          health_grade: "Good",
-          cibil_health_score: guestProfile?.credit_score ?? null,
-          key_positive_factors: [
-            "Clean payment track record with 0 defaults",
-            "Utilization kept safely below the 30% threshold",
-            "Healthy credit mix of revolving and installment debt"
-          ],
-          critical_risk_factors: [
-            "Avoid opening multiple new loan or card applications simultaneously"
-          ],
-          immediate_action_items: [
-            "Keep credit utilization under 20% for faster score gains",
-            "Request annual credit report check for inaccuracies"
-          ],
-          long_term_strategy: [
-            "Maintain oldest credit card to build average credit age past 5 years",
-            "Increase credit limit without increasing spending to lower utilization"
-          ],
-          educational_disclaimer: "Educational estimate based on CIBIL TransUnion scoring methodology."
-        };
-      } else {
-        try {
-          analysisData = await aiAPI.analyzeCredit();
-        } catch (e) {
-          const fb = await api.post("/api/ai/analyze-credit");
-          analysisData = fb.data;
-        }
-
-        // Refresh DB recommendations
-        try {
-          const recList = await recommendationsAPI.getRecommendations();
-          setDbRecs(recList);
-        } catch (e) {}
+      try {
+        analysisData = await aiAPI.analyzeCredit();
+      } catch (e) {
+        const fb = await api.post("/api/ai/analyze-credit");
+        analysisData = fb.data;
       }
+
+      // Refresh DB recommendations
+      try {
+        const recList = await recommendationsAPI.getRecommendations();
+        setDbRecs(recList);
+      } catch (e) {}
 
       setDiagnostic(analysisData);
 
@@ -234,7 +200,7 @@ export default function AIAssistant() {
       try {
         resData = await aiAPI.chat(textToSend, history, currentLanguage);
       } catch (err) {
-        const fallbackRes = await api.post("/ai/chat", {
+        const fallbackRes = await api.post("/api/ai/chat", {
           message: textToSend,
           history: history,
           language: currentLanguage,
@@ -251,13 +217,22 @@ export default function AIAssistant() {
       setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
       console.error("Chat error:", err);
+      const errorTextByLang = {
+        mr: "AI सल्लागार सेवेमध्ये तात्पुरती अडचण आली आहे. तुमचा डेटा सुरक्षित आहे. कृपया पुन्हा विचारून पहा किंवा 'AI क्रेडिट चाचणी चालवा' वर क्लिक करा.",
+        hi: "AI सलाहकार सेवा में अस्थायी समस्या आई है। आपका डेटा सुरक्षित है। कृपया पुनः पूछें या 'AI क्रेडिट चाचणी चालवा' पर क्लिक करें।",
+        en: "I encountered a temporary communication glitch with the primary AI engine. Your credit data is safe. Please ask again or click 'Run AI Credit Diagnostic' to refresh.",
+      };
+      const fallbackSuggestionsByLang = {
+        mr: ["CIBIL स्कोर कसा सुधारावा?", "क्रेडिट कार्ड युटिलायझेशन कमी करण्यासाठी टिपा"],
+        hi: ["CIBIL स्कोर कैसे सुधारें?", "क्रेडिट कार्ड उपयोग कम करने के टिप्स"],
+        en: ["How to improve my CIBIL score?", "Tips for lower card utilization"],
+      };
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "I encountered a temporary communication glitch with the primary AI engine. Your credit data is safe. Please ask again or click 'Run AI Credit Diagnostic' to refresh.",
-          suggestions: ["How to improve my CIBIL score?", "Tips for lower card utilization"],
+          content: errorTextByLang[currentLanguage] || errorTextByLang.en,
+          suggestions: fallbackSuggestionsByLang[currentLanguage] || fallbackSuggestionsByLang.en,
         },
       ]);
     } finally {

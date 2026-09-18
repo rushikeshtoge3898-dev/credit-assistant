@@ -1,59 +1,52 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import api, { authAPI } from "../services/api";
-import { guestData } from "../services/guestData";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [isGuest, setIsGuest] = useState(() => {
-    return localStorage.getItem("isGuest") === "true";
-  });
+  // Purge any stale legacy guest data from localStorage on initialization
+  try {
+    localStorage.removeItem("isGuest");
+    localStorage.removeItem("guest_demo_profile");
+    localStorage.removeItem("guest_demo_accounts");
+    localStorage.removeItem("guest_demo_payments");
+    localStorage.removeItem("guest_demo_score_history");
+    localStorage.removeItem("guest_demo_goals");
+    localStorage.removeItem("guest_demo_recs");
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      if (parsed?.isGuest || parsed?.id === "guest") {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
+    }
+  } catch (e) {
+    // Ignore storage errors
+  }
 
   const [user, setUser] = useState(() => {
-    if (localStorage.getItem("isGuest") === "true") {
-      return {
-        id: "guest",
-        name: "Guest User",
-        email: "guest@creditassistant.local",
-        isGuest: true,
-      };
-    }
     const saved = localStorage.getItem("user");
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      const parsed = JSON.parse(saved);
+      return parsed?.isGuest ? null : parsed;
+    } catch {
+      return null;
+    }
   });
 
   const [token, setToken] = useState(() => {
-    if (localStorage.getItem("isGuest") === "true") {
-      return null;
-    }
     return localStorage.getItem("token") || null;
   });
 
   const [loading, setLoading] = useState(() => {
-    const guestStored = localStorage.getItem("isGuest") === "true";
-    const tokenStored = !!localStorage.getItem("token");
-    // If guest stored, we are ready immediately; if real token stored, verify asynchronously
-    return !guestStored && tokenStored;
+    // If token exists, verify asynchronously; otherwise immediately ready
+    return !!localStorage.getItem("token");
   });
 
   useEffect(() => {
     async function verifyUser() {
-      // If currently in guest mode, ensure guest user is populated and skip server verification
-      if (isGuest) {
-        if (!user || !user.isGuest) {
-          const guestUser = {
-            id: "guest",
-            name: "Guest User",
-            email: "guest@creditassistant.local",
-            isGuest: true,
-          };
-          setUser(guestUser);
-          localStorage.setItem("user", JSON.stringify(guestUser));
-        }
-        setLoading(false);
-        return;
-      }
-
       if (token) {
         try {
           let userData;
@@ -73,12 +66,9 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
     verifyUser();
-  }, [token, isGuest]);
+  }, [token]);
 
   const login = async (email, password) => {
-    setIsGuest(false);
-    localStorage.removeItem("isGuest");
-
     let data;
     try {
       data = await authAPI.login(email, password);
@@ -105,9 +95,6 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (name, email, password, phoneNumber = null) => {
-    setIsGuest(false);
-    localStorage.removeItem("isGuest");
-
     try {
       await authAPI.register(name, email, password, phoneNumber);
     } catch (err) {
@@ -126,32 +113,9 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Enter Guest Mode - zero backend account or token generated.
-   * Completely isolated and uses local demo datasets.
-   */
-  const loginAsGuest = () => {
-    const guestUser = {
-      id: "guest",
-      name: "Guest User",
-      email: "guest@creditassistant.local",
-      isGuest: true,
-    };
-    setToken(null);
-    setUser(guestUser);
-    setIsGuest(true);
-    localStorage.removeItem("token");
-    localStorage.setItem("isGuest", "true");
-    localStorage.setItem("user", JSON.stringify(guestUser));
-    return guestUser;
-  };
-
-  /**
    * Set user authenticated via Firebase (Google Sign-In)
    */
   const loginWithFirebaseUser = (fbUser, authToken = null) => {
-    setIsGuest(false);
-    localStorage.removeItem("isGuest");
-
     const sessionUser = {
       id: fbUser.id || fbUser.uid || Date.now(),
       name: fbUser.displayName || fbUser.name || "Authenticated Member",
@@ -170,13 +134,10 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    setIsGuest(false);
     setToken(null);
     setUser(null);
-    localStorage.removeItem("isGuest");
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    guestData.resetGuestData();
   };
 
   return (
@@ -184,11 +145,10 @@ export function AuthProvider({ children }) {
       value={{
         user,
         token,
-        isGuest,
+        isAuthenticated: !!token && !!user,
         loading,
         login,
         register,
-        loginAsGuest,
         loginWithFirebaseUser,
         logout,
       }}

@@ -9,12 +9,6 @@ const api = axios.create({
 // Request interceptor to attach JWT token
 api.interceptors.request.use(
   (config) => {
-    const isGuest = localStorage.getItem("isGuest") === "true";
-    if (isGuest) {
-      // Guest mode never sends an authentication token
-      delete config.headers.Authorization;
-      return config;
-    }
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -28,11 +22,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const isGuest = localStorage.getItem("isGuest") === "true";
-    if (isGuest) {
-      // Never auto-redirect guest mode on 401 errors
-      return Promise.reject(error);
-    }
     if (error.response && error.response.status === 401) {
       // Don't auto-redirect if we're attempting to login
       const isLoginRequest =
@@ -170,8 +159,13 @@ export const recommendationsAPI = {
 };
 
 export const aiAPI = {
-  chat: async (message, history = []) => {
-    const response = await api.post("/api/ai/chat", { message, history });
+  chat: async (message, history = [], language = "en") => {
+    const selectedLang = language || localStorage.getItem("credit_assistant_lang") || "en";
+    const response = await api.post("/api/ai/chat", {
+      message,
+      history,
+      language: selectedLang,
+    });
     return response.data;
   },
   analyzeCredit: async () => {

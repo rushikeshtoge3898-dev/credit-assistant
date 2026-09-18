@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -11,7 +11,6 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
   KeyRound,
 } from "lucide-react";
 
@@ -28,9 +27,17 @@ function Login() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState({ error: "", success: "" });
 
-  const { login, loginAsGuest, loginWithFirebaseUser } = useAuth();
+  const { user, login, loginWithFirebaseUser } = useAuth();
   const { currentLanguage, setLanguage, t, languages } = useLanguage();
   const navigate = useNavigate();
+
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    const hasToken = !!localStorage.getItem("token");
+    if (user && hasToken) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   // 1. Email + Password Login
   const handleLogin = async (e) => {
@@ -41,7 +48,7 @@ function Login() {
 
     try {
       await login(email, password);
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Login failed:", err);
       const msg =
@@ -51,12 +58,6 @@ function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // 2. Continue as Guest (Isolated Demo Mode)
-  const handleContinueAsGuest = () => {
-    loginAsGuest();
-    navigate("/dashboard");
   };
 
   // 3. Google Sign-In with Firebase Authentication
@@ -79,7 +80,7 @@ function Login() {
         console.warn("Backend firebase-login sync fallback:", backendErr);
         loginWithFirebaseUser(fbUser);
       }
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Google sign-in failed:", err);
       setError(
@@ -243,7 +244,7 @@ function Login() {
             </button>
           </form>
 
-          {/* Social Sign-In & Guest Mode Section */}
+          {/* Social Sign-In Section */}
           <div className="mt-5 pt-5 border-t border-slate-800/80 space-y-3">
             {/* Google Authentication Button */}
             <button
@@ -272,23 +273,6 @@ function Login() {
               </svg>
               <span>{t("auth.googleSignIn", "Continue with Google")}</span>
             </button>
-
-            {/* Continue as Guest Button */}
-            <button
-              type="button"
-              onClick={handleContinueAsGuest}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 transition-all cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>{t("auth.continueAsGuest", "Continue as Guest (Explore Demo)")}</span>
-            </button>
-
-            <p className="text-[10px] text-center text-slate-500 leading-normal px-2">
-              {t(
-                "auth.guestNotice",
-                "Guest mode lets you test all features using isolated demo data without saving real credentials."
-              )}
-            </p>
           </div>
 
           {/* Create Account Link */}

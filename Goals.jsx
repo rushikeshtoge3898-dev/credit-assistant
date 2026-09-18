@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api, { creditAPI, goalsAPI } from "../services/api";
-import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { guestData } from "../services/guestData";
 import { Target, Plus, CheckCircle2, Sliders, ArrowRight, Sparkles, TrendingUp, AlertTriangle, Info } from "lucide-react";
 
 export default function Goals() {
-  const { isGuest } = useAuth();
   const { t } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [goals, setGoals] = useState([]);
@@ -28,13 +25,6 @@ export default function Goals() {
 
   const fetchProfileAndGoals = async () => {
     try {
-      if (isGuest) {
-        setProfile(guestData.getGuestProfile());
-        setGoals(guestData.getGuestGoals());
-        setLoading(false);
-        return;
-      }
-
       let pData = null;
       let gData = [];
 
@@ -63,7 +53,7 @@ export default function Goals() {
 
   useEffect(() => {
     fetchProfileAndGoals();
-  }, [isGuest]);
+  }, []);
 
   const handleCreateGoal = async (e) => {
     e.preventDefault();
@@ -74,14 +64,6 @@ export default function Goals() {
       action_plan: actionPlan,
     };
     try {
-      if (isGuest) {
-        guestData.createGuestGoal(payload);
-        setShowGoalModal(false);
-        fetchProfileAndGoals();
-        setSavingGoal(false);
-        return;
-      }
-
       try {
         await goalsAPI.createGoal(payload);
       } catch (err) {
@@ -99,12 +81,6 @@ export default function Goals() {
   const handleToggleGoal = async (goal) => {
     const nextStatus = goal.status === "completed" ? "in_progress" : "completed";
     try {
-      if (isGuest) {
-        guestData.updateGuestGoal(goal.id, { status: nextStatus });
-        fetchProfileAndGoals();
-        return;
-      }
-
       try {
         await goalsAPI.updateGoal(goal.id, { status: nextStatus });
       } catch (err) {
@@ -118,12 +94,6 @@ export default function Goals() {
 
   const handleDeleteGoal = async (id) => {
     try {
-      if (isGuest) {
-        guestData.deleteGuestGoal(id);
-        setGoals(goals.filter((g) => g.id !== id));
-        return;
-      }
-
       try {
         await goalsAPI.deleteGoal(id);
       } catch (err) {

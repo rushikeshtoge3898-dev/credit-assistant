@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import api, { creditAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { guestData } from "../services/guestData";
 import { User, Shield, IndianRupee, Save, CheckCircle2, AlertCircle, Award } from "lucide-react";
 
 export default function Profile() {
-  const { user, isGuest } = useAuth();
+  const { user } = useAuth();
   const { t } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,23 +25,6 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
-      if (isGuest) {
-        const p = guestData.getGuestProfile();
-        setProfile(p);
-        if (p) {
-          setCreditScore(p.credit_score ?? "");
-          setIncome(p.monthly_income ?? "");
-          setDebt(p.total_debt ?? "");
-          setLimit(p.credit_limit ?? "");
-          setBalance(p.credit_card_balance ?? "");
-          setActiveLoans(p.active_loans ?? 0);
-          setMissedPayments(p.missed_payments ?? 0);
-          setFinancialGoal(p.financial_goal ?? "");
-        }
-        setLoading(false);
-        return;
-      }
-
       let p;
       try {
         p = await creditAPI.getProfile();
@@ -70,7 +52,7 @@ export default function Profile() {
 
   useEffect(() => {
     fetchProfile();
-  }, [isGuest]);
+  }, []);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -93,14 +75,6 @@ export default function Profile() {
     }
 
     try {
-      if (isGuest) {
-        guestData.updateGuestProfile(payload);
-        setMessage("Credit profile updated successfully!");
-        fetchProfile();
-        setSaving(false);
-        return;
-      }
-
       try {
         await creditAPI.updateProfile(payload);
       } catch (err) {
@@ -159,7 +133,7 @@ export default function Profile() {
           <Shield className="w-4 h-4 text-indigo-400" />
           Account Details
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div>
             <span className="text-xs text-slate-400">Registered Name:</span>
             <div className="font-semibold text-slate-200 mt-0.5">{user?.name}</div>
@@ -167,6 +141,10 @@ export default function Profile() {
           <div>
             <span className="text-xs text-slate-400">Email Address:</span>
             <div className="font-semibold text-slate-200 mt-0.5">{user?.email}</div>
+          </div>
+          <div>
+            <span className="text-xs text-slate-400">Mobile Number:</span>
+            <div className="font-semibold text-slate-200 mt-0.5">{user?.phone_number || "Not provided"}</div>
           </div>
         </div>
       </div>

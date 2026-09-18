@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -11,9 +11,16 @@ function Register() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { user, register } = useAuth();
   const { currentLanguage, setLanguage, t, languages } = useLanguage();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const hasToken = !!localStorage.getItem("token");
+    if (user && hasToken) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -25,8 +32,14 @@ function Register() {
     }
 
     const cleanPhone = mobileNumber.trim().replace(/\D/g, "");
-    if (cleanPhone && cleanPhone.length !== 10) {
-      setError("Please enter a valid 10-digit Indian mobile number.");
+    if (!cleanPhone || cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setError(
+        currentLanguage === "mr"
+          ? "कृपया वैध १०-अंकी भारतीय मोबाईल नंबर प्रविष्ट करा (उदा. 9876543210)."
+          : currentLanguage === "hi"
+          ? "कृपया वैध १० अंकों का भारतीय मोबाइल नंबर दर्ज करें (उदा. 9876543210)।"
+          : "Please enter a valid 10-digit Indian mobile number starting with 6-9."
+      );
       return;
     }
 
@@ -149,6 +162,7 @@ function Register() {
                   onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ""))}
                   placeholder={t("auth.phonePlaceholder", "9876543210")}
                   maxLength={10}
+                  required
                   className="block w-full px-3.5 py-2.5 bg-slate-950/70 border border-slate-800 rounded-r-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
                 />
               </div>

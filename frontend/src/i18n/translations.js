@@ -12,7 +12,6 @@ export const translations = {
       aiAdvisor: "AI Advisor",
       profile: "Profile",
       logout: "Logout",
-      guestBadge: "Guest Demo Mode",
     },
 
     // Common Actions & States
@@ -52,30 +51,13 @@ export const translations = {
       sendResetLink: "Send Reset Link",
       resetLinkSent: "Password reset link has been dispatched to your email. Check your inbox.",
       googleSignIn: "Continue with Google",
-      phoneSignIn: "Continue with Mobile & OTP",
-      continueAsGuest: "Continue as Guest (Explore Demo)",
-      guestNotice: "Guest mode lets you test all features using isolated demo data without saving real credentials.",
       phoneLabel: "Mobile Number",
-      phonePlaceholder: "9876543210",
-      sendOtpBtn: "Send Verification Code",
-      enterOtpLabel: "Enter 6-Digit SMS Code",
-      verifyOtpBtn: "Verify & Continue",
-      resendOtp: "Resend Code",
-      recaptchaNote: "Protected by Firebase Phone Authentication",
+      phonePlaceholder: "10-digit mobile number (e.g. 9876543210)",
       registerTitle: "Create Your Account",
       registerSubtitle: "Track, boost, and master your CIBIL credit score with AI",
       fullNameLabel: "Full Name",
       fullNamePlaceholder: "e.g. Rushikesh Sharma",
       minPasswordLength: "Password must be at least 6 characters long.",
-    },
-
-    // Guest Mode
-    guest: {
-      bannerTitle: "Guest Demo Mode (Sample Data)",
-      bannerDesc: "You are currently exploring Credit Assistant with simulated Indian CIBIL profile tradelines. No real account is stored.",
-      signInToSave: "Sign In to Track Real Data",
-      exitGuest: "Exit Guest Mode",
-      simulatedNotice: "Changes are simulated in memory during this guest session.",
     },
 
     // Dashboard
@@ -111,7 +93,8 @@ export const translations = {
       highRisk: "High Risk",
       mediumRisk: "Medium Risk",
       lowRisk: "Low Risk",
-      disclaimer: "Educational credit simulation reflecting Indian CIBIL scoring methodology (300-900). Does not pull or claim an official credit bureau report.",
+      notAvailable: "Not Available",
+      disclaimer: "Credit simulation reflecting Indian CIBIL scoring methodology (300-900). Credit Assistant is not a bank, lender, credit bureau, or official CIBIL service.",
     },
 
     // AI Assistant
@@ -153,7 +136,6 @@ export const translations = {
       aiAdvisor: "AI सल्लागार",
       profile: "प्रोफाइल",
       logout: "लॉगआउट",
-      guestBadge: "अतिथी डेमो मोड",
     },
 
     // Common Actions & States
@@ -193,30 +175,13 @@ export const translations = {
       sendResetLink: "रीसेट लिंक पाठवा",
       resetLinkSent: "पासवर्ड रीसेट लिंक तुमच्या ईमेलवर पाठवली गेली आहे. कृपया इनबॉक्स तपासा.",
       googleSignIn: "Google सह सुरू ठेवा",
-      phoneSignIn: "मोबाईल नंबर आणि OTP सह लॉगिन करा",
-      continueAsGuest: "अतिथी म्हणून सुरू ठेवा (डेमो पहा)",
-      guestNotice: "अतिथी मोडमध्ये कोणतीही वैयक्तिक माहिती न देता सर्व वैशिष्ट्ये डेमो डेटामध्ये वापरता येतात.",
       phoneLabel: "मोबाईल नंबर",
-      phonePlaceholder: "9876543210",
-      sendOtpBtn: "ओटीपी कोड पाठवा",
-      enterOtpLabel: "६ अंकी एसएमएस कोड टाका",
-      verifyOtpBtn: "सत्यापित करा आणि पुढे जा",
-      resendOtp: "कोड पुन्हा पाठवा",
-      recaptchaNote: "Firebase फोन प्रमाणीकरणाद्वारे सुरक्षित",
+      phonePlaceholder: "१० अंकी मोबाईल नंबर (उदा. 9876543210)",
       registerTitle: "नवीन खाते तयार करा",
       registerSubtitle: "AI च्या सहाय्याने तुमचा CIBIL क्रेडिट स्कोर तपासा आणि वाढवा",
       fullNameLabel: "पूर्ण नाव",
       fullNamePlaceholder: "उदा. ऋषिकेश शर्मा",
       minPasswordLength: "पासवर्ड किमान ६ अक्षरांचा असणे आवश्यक आहे.",
-    },
-
-    // Guest Mode
-    guest: {
-      bannerTitle: "अतिथी डेमो मोड (नमुना डेटा)",
-      bannerDesc: "तुम्ही सध्या नमुना CIBIL प्रोफाइल डेटा वापरत आहात. कोणताही खरा डेटा सेव्ह होत नाही.",
-      signInToSave: "खरा डेटा सेव्ह करण्यासाठी साइन इन करा",
-      exitGuest: "अतिथी मोडमधून बाहेर पडा",
-      simulatedNotice: "या सत्रामध्ये केलेले बदल केवळ स्थानिक डेमोमध्ये तात्पुरते सिम्युलेट केले जातात.",
     },
 
     // Dashboard
@@ -225,12 +190,12 @@ export const translations = {
       welcome: "स्वागत आहे",
       subtitle: "येथे तुमचे क्रेडिट आरोग्य विहंगावलोकन, कार्ड वापर आणि AI-आधारित शिफारसी पहा.",
       cibilAssessment: "TransUnion CIBIL भारत मूल्यांकन",
-      demoDataBadge: "डेमो सिम्युलेशन डेटा",
-      loadDemoData: "डेमो CIBIL डेटा लोड करा",
+      loadDemoData: "नमुना डेटा लोड करा",
       loadingDemoData: "नमुना डेटा लोड होत आहे...",
-      sampleDataLoaded: "नमुना भारतीय CIBIL प्रोफाइल लोड झाले!",
+      sampleDataLoaded: "नमुना भारतीय प्रोफाइल लोड झाले!",
       askAIAdvisor: "AI सल्लागारास विचारा",
       noScoreRecorded: "स्कोअर नोंदवलेला नाही",
+      notAvailable: "उपलब्ध नाही",
       recordScorePrompt: "तुमचा पहिला CIBIL स्कोअर नोंदवून ट्रेंड ट्रॅकिंग अनलॉक करा.",
       recordScoreBtn: "CIBIL स्कोअर नोंदवा",
       cibilScore: "CIBIL स्कोअर",
@@ -252,7 +217,7 @@ export const translations = {
       highRisk: "उच्च जोखीम",
       mediumRisk: "मध्यम जोखीम",
       lowRisk: "कमी जोखीम",
-      disclaimer: "शैक्षणिक CIBIL सिम्युलेशन (३००-९००). ही अधिकृत क्रेडिट ब्युरो चौकशी किंवा रिपोर्ट नाही.",
+      disclaimer: "शैक्षणिक CIBIL सिम्युलेशन (३००-९००). क्रेडिट असिस्टंट ही बँक, कर्जदाता, क्रेडिट ब्युरो किंवा अधिकृत सिबिल सेवा नाही.",
     },
 
     // AI Assistant
@@ -294,7 +259,6 @@ export const translations = {
       aiAdvisor: "AI सलाहकार",
       profile: "प्रोफाइल",
       logout: "लॉगआउट",
-      guestBadge: "अतिथि डेमो मोड",
     },
 
     // Common Actions & States
@@ -334,30 +298,13 @@ export const translations = {
       sendResetLink: "रीसेट लिंक भेजें",
       resetLinkSent: "पासवर्ड रीसेट लिंक आपके ईमेल पर भेज दिया गया है। अपना इनबॉक्स जांचें।",
       googleSignIn: "Google के साथ जारी रखें",
-      phoneSignIn: "मोबाइल नंबर और OTP से लॉगिन करें",
-      continueAsGuest: "अतिथि के रूप में जारी रखें (डेमो देखें)",
-      guestNotice: "अतिथि मोड में बिना कोई वास्तविक खाता बनाए डेमो डेटा के साथ सभी सुविधाओं का परीक्षण करें।",
       phoneLabel: "मोबाइल नंबर",
-      phonePlaceholder: "9876543210",
-      sendOtpBtn: "ओटीपी कोड भेजें",
-      enterOtpLabel: "६ अंकों का एसएमएस कोड दर्ज करें",
-      verifyOtpBtn: "सत्यापित करें और आगे बढ़ें",
-      resendOtp: "कोड पुनः भेजें",
-      recaptchaNote: "Firebase फोन प्रमाणीकरण द्वारा सुरक्षित",
+      phonePlaceholder: "१० अंकों का मोबाइल नंबर (उदा. 9876543210)",
       registerTitle: "नया खाता बनाएं",
       registerSubtitle: "AI के साथ अपना सिबिल क्रेडिट स्कोर ट्रैक करें और सुधारें",
       fullNameLabel: "पूरा नाम",
       fullNamePlaceholder: "उदा. ऋषिकेश शर्मा",
       minPasswordLength: "पासवर्ड कम से कम ६ अक्षरों का होना चाहिए।",
-    },
-
-    // Guest Mode
-    guest: {
-      bannerTitle: "अतिथि डेमो मोड (नमूना डेटा)",
-      bannerDesc: "आप वर्तमान में सिम्युलेटेड भारतीय CIBIL डेटा देख रहे हैं। कोई वास्तविक डेटा संग्रहीत नहीं किया जा रहा है।",
-      signInToSave: "वास्तविक डेटा सहेजने के लिए साइन इन करें",
-      exitGuest: "अतिथि मोड से बाहर निकलें",
-      simulatedNotice: "इस सत्र के दौरान किए गए परिवर्तन केवल स्थानीय मेमोरी में सिम्युलेट किए जाते हैं।",
     },
 
     // Dashboard
@@ -366,12 +313,12 @@ export const translations = {
       welcome: "स्वागत है",
       subtitle: "यहाँ आपका क्रेडिट स्वास्थ्य अवलोकन, कार्ड उपयोग और AI-आधारित सिफारिशें हैं।",
       cibilAssessment: "TransUnion CIBIL भारत मूल्यांकन",
-      demoDataBadge: "डेमो सिमुलेशन डेटा",
-      loadDemoData: "डेमो CIBIL डेटा लोड करें",
+      loadDemoData: "नमूना डेटा लोड करें",
       loadingDemoData: "नमूना डेटा लोड हो रहा है...",
-      sampleDataLoaded: "नमूना भारतीय CIBIL प्रोफाइल लोड हो गया!",
+      sampleDataLoaded: "नमूना भारतीय क्रेडिट प्रोफाइल लोड हो गया!",
       askAIAdvisor: "AI सलाहकार से पूछें",
       noScoreRecorded: "स्कोर दर्ज नहीं है",
+      notAvailable: "उपलब्ध नहीं",
       recordScorePrompt: "ट्रेंड ट्रैकिंग अनलॉक करने के लिए अपना पहला स्कोर स्नैपशॉट जोड़ें।",
       recordScoreBtn: "सिबिल स्कोर दर्ज करें",
       cibilScore: "सिबिल स्कोर",
@@ -393,7 +340,7 @@ export const translations = {
       highRisk: "उच्च जोखिम",
       mediumRisk: "मध्यम जोखिम",
       lowRisk: "कम जोखिम",
-      disclaimer: "शैक्षिक सिबिल सिमुलेशन मॉडल (३००-९००)। यह आधिकारिक क्रेडिट ब्यूरो रिपोर्ट नहीं है।",
+      disclaimer: "शैक्षिक सिबिल सिमुलेशन मॉडल (३००-९००)। क्रेडिट असिस्टेंट बैंक, ऋणदाता, क्रेडिट ब्यूरो या आधिकारिक सिबिल सेवा नहीं है।",
     },
 
     // AI Assistant

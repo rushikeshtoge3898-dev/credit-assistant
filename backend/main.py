@@ -945,22 +945,6 @@ def ai_chat(
     return result
 
 
-@api_router.post("/ai/guest-chat", response_model=AIChatResponse)
-@app.post("/ai/guest-chat", response_model=AIChatResponse)
-def ai_guest_chat(
-    req: AIChatRequest
-):
-    # Guest chat operates with demo data in memory without touching user database
-    result = generate_ai_chat_response(
-        user_message=req.message,
-        profile=None,
-        accounts=None,
-        chat_history=req.history,
-        language=req.language or "en"
-    )
-    return result
-
-
 @api_router.get("/ai/recommendations", response_model=AIRecommendationResponse)
 @app.get("/ai/recommendations", response_model=AIRecommendationResponse)
 def ai_recommendations(

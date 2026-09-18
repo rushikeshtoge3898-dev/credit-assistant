@@ -54,7 +54,7 @@ export default function CreditHealthIndicator({ profile, analytics }) {
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <span>CIBIL Credit Health Pillars</span>
             <span className="text-xs font-normal px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              Educational Guide
+              CIBIL Factors
             </span>
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">

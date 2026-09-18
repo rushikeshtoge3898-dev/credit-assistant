@@ -12,17 +12,19 @@ import {
   ShieldCheck,
   Menu,
   X,
-  Languages,
-  UserCheck,
-  ArrowRight
+  Mail,
+  HelpCircle,
+  FileText,
+  ShieldAlert,
 } from "lucide-react";
 import { useState } from "react";
 
 export default function Layout() {
-  const { user, isGuest, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { currentLanguage, setLanguage, t, languages } = useLanguage();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeModal, setActiveModal] = useState(null); // 'help' | 'privacy' | 'terms' | 'disclaimer' | null
 
   const handleLogout = () => {
     logout();
@@ -89,8 +91,18 @@ export default function Layout() {
               })}
             </nav>
 
-            {/* Right Side: Language Switcher + User Profile / Guest Badge */}
+            {/* Right Side: Language Switcher + User Profile + Logout */}
             <div className="hidden md:flex items-center space-x-3">
+              {/* Help & Support Quick Button */}
+              <button
+                onClick={() => setActiveModal("help")}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors cursor-pointer"
+                title="Help & Support"
+              >
+                <HelpCircle className="w-4 h-4 text-indigo-400" />
+                <span>Help</span>
+              </button>
+
               {/* Language Switcher */}
               <div className="flex items-center bg-slate-950/70 border border-slate-800 rounded-xl p-0.5">
                 {languages.map((lang) => (
@@ -108,30 +120,15 @@ export default function Layout() {
                 ))}
               </div>
 
-              {/* Guest Mode Indicator or User Details */}
-              {isGuest ? (
-                <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-xl">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
-                  <span className="text-xs font-bold text-amber-300">
-                    {t("nav.guestBadge", "Guest Demo")}
-                  </span>
-                  <Link
-                    to="/register"
-                    className="ml-1 text-[11px] font-semibold text-white bg-indigo-600 hover:bg-indigo-500 px-2 py-0.5 rounded-lg transition-all"
-                  >
-                    {t("guest.signInToSave", "Sign In")}
-                  </Link>
+              {/* User Details */}
+              <div className="text-right">
+                <div className="text-xs font-semibold text-slate-200 truncate max-w-[130px]">
+                  {user?.name || "Member"}
                 </div>
-              ) : (
-                <div className="text-right">
-                  <div className="text-xs font-semibold text-slate-200 truncate max-w-[120px]">
-                    {user?.name || "User"}
-                  </div>
-                  <div className="text-[10px] text-slate-400 truncate max-w-[120px]">
-                    {user?.email}
-                  </div>
+                <div className="text-[10px] text-slate-400 truncate max-w-[130px]">
+                  {user?.email}
                 </div>
-              )}
+              </div>
 
               <button
                 onClick={handleLogout}
@@ -174,22 +171,6 @@ export default function Layout() {
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-slate-900 border-b border-slate-800 px-4 pt-2 pb-5 space-y-2">
-            {isGuest && (
-              <div className="p-3 mb-2 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-300">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
-                  <span className="font-bold">{t("nav.guestBadge", "Guest Demo Mode")}</span>
-                </div>
-                <Link
-                  to="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-semibold text-[11px]"
-                >
-                  {t("common.save", "Save Data")}
-                </Link>
-              </div>
-            )}
-
             <div className="grid grid-cols-1 gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -218,16 +199,23 @@ export default function Layout() {
                   </NavLink>
                 );
               })}
+
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setActiveModal("help");
+                }}
+                className="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 w-full text-left"
+              >
+                <HelpCircle className="w-4 h-4 mr-3 shrink-0 text-indigo-400" />
+                <span>Help &amp; Support</span>
+              </button>
             </div>
 
             <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
               <div>
-                <div className="text-xs font-medium text-slate-200">
-                  {isGuest ? t("nav.guestBadge", "Guest Mode") : user?.name}
-                </div>
-                <div className="text-[11px] text-slate-400 truncate max-w-[180px]">
-                  {isGuest ? "demo@creditassistant.local" : user?.email}
-                </div>
+                <div className="text-xs font-medium text-slate-200">{user?.name || "Member"}</div>
+                <div className="text-[11px] text-slate-400 truncate max-w-[180px]">{user?.email}</div>
               </div>
               <button
                 onClick={handleLogout}
@@ -240,49 +228,174 @@ export default function Layout() {
         )}
       </header>
 
-      {/* Guest Mode Persistent Top Banner (if guest) */}
-      {isGuest && (
-        <div className="bg-gradient-to-r from-amber-950/50 via-slate-900 to-amber-950/50 border-b border-amber-500/20 px-4 py-2.5 text-xs text-amber-300">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 border border-amber-500/40 text-amber-200 uppercase tracking-wide">
-                Demo
-              </span>
-              <span>
-                {t("guest.bannerDesc", "You are exploring Credit Assistant with simulated Indian CIBIL profile tradelines. No real account is stored.")}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Link
-                to="/register"
-                className="inline-flex items-center gap-1 font-semibold text-amber-200 hover:text-white underline underline-offset-2 transition-colors"
-              >
-                <span>{t("guest.signInToSave", "Sign In to Track Real Data")}</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
         <Outlet />
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-900/40 py-6 text-center text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div>
-            Credit Assistant &copy; {new Date().getFullYear()} &bull; Built for India CIBIL Credit Health
+      <footer className="border-t border-slate-800/80 bg-slate-900/40 py-6 text-xs text-slate-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-center sm:text-left">
+            <span>Credit Assistant &copy; {new Date().getFullYear()}</span>
+            <span className="mx-2">&bull;</span>
+            <span className="text-slate-400">
+              Credit Assistant is not a bank, lender, credit bureau, or official CIBIL service.
+            </span>
           </div>
-          <div className="flex items-center space-x-3 text-slate-400 text-[11px]">
-            <span>Score Range: 300 - 900</span>
+          <div className="flex items-center space-x-3 text-slate-400 text-xs">
+            <button
+              onClick={() => setActiveModal("help")}
+              className="hover:text-indigo-400 transition-colors cursor-pointer"
+            >
+              Help &amp; Support
+            </button>
             <span>&bull;</span>
-            <span>RBI / CIBIL Compliant Standards</span>
+            <button
+              onClick={() => setActiveModal("privacy")}
+              className="hover:text-indigo-400 transition-colors cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <span>&bull;</span>
+            <button
+              onClick={() => setActiveModal("terms")}
+              className="hover:text-indigo-400 transition-colors cursor-pointer"
+            >
+              Terms of Use
+            </button>
+            <span>&bull;</span>
+            <button
+              onClick={() => setActiveModal("disclaimer")}
+              className="hover:text-indigo-400 transition-colors cursor-pointer"
+            >
+              Disclaimer
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* Informational Modals */}
+      {activeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative overflow-hidden">
+            <button
+              onClick={() => setActiveModal(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Help & Support Modal */}
+            {activeModal === "help" && (
+              <div>
+                <div className="flex items-center gap-2 mb-4 text-indigo-400">
+                  <HelpCircle className="w-5 h-5" />
+                  <h2 className="text-lg font-bold text-white">Help &amp; Support</h2>
+                </div>
+                <div className="space-y-4 text-slate-300 text-sm">
+                  <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+                    <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Support</div>
+                    <div className="text-base font-semibold text-white flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <a
+                        href="mailto:rushikeshtoge31@gmail.com"
+                        className="text-indigo-400 hover:text-indigo-300 underline underline-offset-4"
+                      >
+                        support@creditassistant.com
+                      </a>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Click the email above to compose an inquiry. We assist with account access, credit health insights, and platform questions.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1">
+                    <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Created by</div>
+                    <div className="text-sm font-semibold text-white">Rushikesh Toge</div>
+                    <p className="text-xs text-slate-400">
+                      Designed and engineered for Indian credit health monitoring and AI financial advisory.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Privacy Policy Modal */}
+            {activeModal === "privacy" && (
+              <div>
+                <div className="flex items-center gap-2 mb-4 text-emerald-400">
+                  <FileText className="w-5 h-5" />
+                  <h2 className="text-lg font-bold text-white">Privacy Policy</h2>
+                </div>
+                <div className="space-y-3 text-slate-300 text-xs leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+                  <p>
+                    <strong>1. Information Collection:</strong> We collect only the information you provide voluntarily, including your name, email address, 10-digit mobile number, and credit account/history figures entered for analysis.
+                  </p>
+                  <p>
+                    <strong>2. Use of Data:</strong> Your data is used exclusively to simulate credit scores, compute debt-to-income and utilization ratios, and deliver personalized credit health recommendations.
+                  </p>
+                  <p>
+                    <strong>3. AI Interactions:</strong> When you consult the AI Advisor, relevant financial context (without passwords, JWTs, or private credentials) is processed to answer credit queries in English, Marathi, or Hindi.
+                  </p>
+                  <p>
+                    <strong>4. Data Protection:</strong> We employ industry-standard encryption, hashed passwords, and token authentication. We never sell or transfer your personal records to third-party lenders.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Terms of Use Modal */}
+            {activeModal === "terms" && (
+              <div>
+                <div className="flex items-center gap-2 mb-4 text-indigo-400">
+                  <FileText className="w-5 h-5" />
+                  <h2 className="text-lg font-bold text-white">Terms of Use</h2>
+                </div>
+                <div className="space-y-3 text-slate-300 text-xs leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+                  <p>
+                    <strong>1. Acceptance:</strong> By accessing Credit Assistant, you agree to these Terms. If you disagree, please do not use the service.
+                  </p>
+                  <p>
+                    <strong>2. Advisory Nature:</strong> Score simulations, health grades, and AI answers are informational tools based on Indian credit bureau scoring models. They do not constitute official bureau reports, binding legal counsel, or guaranteed loan offers.
+                  </p>
+                  <p>
+                    <strong>3. Account Responsibility:</strong> You are responsible for safeguarding your login credentials and maintaining the accuracy of data entered into your credit tradelines.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Disclaimer Modal */}
+            {activeModal === "disclaimer" && (
+              <div>
+                <div className="flex items-center gap-2 mb-4 text-amber-400">
+                  <ShieldAlert className="w-5 h-5" />
+                  <h2 className="text-lg font-bold text-white">Official Disclaimer</h2>
+                </div>
+                <div className="space-y-3 text-slate-300 text-xs leading-relaxed">
+                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 font-medium">
+                    Credit Assistant is not a bank, lender, credit bureau, or official CIBIL service.
+                  </div>
+                  <p>
+                    All scores and analytics displayed within this platform are algorithmic simulations reflecting CIBIL TransUnion scoring methodology (range 300 to 900). No direct credit bureau pull is executed without your explicit external consent through licensed financial partners.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 pt-4 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setActiveModal(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import api, { creditAPI } from "../services/api";
-import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { guestData } from "../services/guestData";
 import {
   ResponsiveContainer,
   LineChart,
@@ -28,24 +26,17 @@ import {
 } from "lucide-react";
 
 export default function ScoreHistory() {
-  const { isGuest } = useAuth();
   const { t } = useLanguage();
 
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newScore, setNewScore] = useState(750);
+  const [newScore, setNewScore] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const fetchHistory = async () => {
     try {
-      if (isGuest) {
-        setHistory(guestData.getGuestScoreHistory());
-        setLoading(false);
-        return;
-      }
-
       let data = [];
       try {
         data = await creditAPI.getScoreHistory();
@@ -64,7 +55,7 @@ export default function ScoreHistory() {
 
   useEffect(() => {
     fetchHistory();
-  }, [isGuest]);
+  }, []);
 
   const handleAddScore = async (e) => {
     e.preventDefault();
@@ -80,14 +71,6 @@ export default function ScoreHistory() {
         return;
       }
 
-      if (isGuest) {
-        guestData.addGuestScore(scoreVal);
-        setMessage(`Successfully recorded CIBIL snapshot of ${scoreVal}!`);
-        fetchHistory();
-        setSubmitting(false);
-        return;
-      }
-
       try {
         await creditAPI.addScoreHistory({ credit_score: scoreVal });
         await creditAPI.updateProfile({ credit_score: scoreVal });
@@ -96,6 +79,7 @@ export default function ScoreHistory() {
         await api.put("/credit/profile", { credit_score: scoreVal });
       }
       setMessage(`Successfully recorded CIBIL snapshot of ${scoreVal}!`);
+      setNewScore("");
       fetchHistory();
     } catch (err) {
       console.error("Error adding score:", err);
@@ -379,6 +363,7 @@ export default function ScoreHistory() {
                 max="900"
                 value={newScore}
                 onChange={(e) => setNewScore(e.target.value)}
+                placeholder="e.g. 750"
                 required
                 className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-base font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
