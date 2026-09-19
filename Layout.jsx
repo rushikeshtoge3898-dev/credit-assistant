@@ -43,20 +43,20 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col overflow-x-hidden">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <header className="sticky top-0 z-40 w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
+          <div className="flex items-center justify-between h-16 gap-2 lg:gap-3 xl:gap-4 min-w-0">
             {/* Logo */}
-            <div className="flex items-center space-x-3 shrink-0">
-              <Link to="/dashboard" className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
-                  <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0">
+              <Link to="/dashboard" className="flex items-center space-x-2 sm:space-x-2.5">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 xl:w-10 xl:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+                  <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 xl:w-6 xl:h-6 text-white" />
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
-                  <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                <div className="flex items-baseline gap-1.5 sm:gap-2">
+                  <span className="text-sm sm:text-base xl:text-lg font-bold bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent whitespace-nowrap">
                     Credit Assistant
                   </span>
-                  <span className="hidden lg:inline-block text-[11px] font-semibold px-2 py-0.2 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span className="hidden xl:inline-block text-[10px] xl:text-[11px] font-semibold px-1.5 xl:px-2 py-0.2 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
                     CIBIL India
                   </span>
                 </div>
@@ -64,7 +64,7 @@ export default function Layout() {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-1">
+            <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 2xl:gap-1.5 min-w-0 shrink">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -72,17 +72,17 @@ export default function Layout() {
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `flex items-center px-3 py-2 rounded-lg text-xs xl:text-sm font-medium transition-all ${
+                      `flex items-center px-1.5 py-1.5 lg:px-2 xl:px-2.5 2xl:px-3 xl:py-2 rounded-lg text-xs 2xl:text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
                         isActive
                           ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 shadow-sm"
                           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                       }`
                     }
                   >
-                    <Icon className="w-4 h-4 mr-1.5 shrink-0" />
+                    <Icon className="w-3.5 h-3.5 xl:w-4 xl:h-4 mr-1 xl:mr-1.5 shrink-0" />
                     <span>{item.label}</span>
                     {item.badge && (
-                      <span className="ml-1 px-1.5 py-0.2 text-[9px] uppercase font-bold tracking-wider rounded bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+                      <span className="ml-1 px-1 xl:px-1.5 py-0.2 text-[9px] uppercase font-bold tracking-wider rounded bg-gradient-to-r from-indigo-500 to-purple-500 text-white shrink-0">
                         {item.badge}
                       </span>
                     )}
@@ -91,62 +91,67 @@ export default function Layout() {
               })}
             </nav>
 
-            {/* Right Side: Language Switcher + User Profile + Logout */}
-            <div className="hidden md:flex items-center space-x-3">
+            {/* Desktop Right Side: Help + Language Switcher + User Details + Logout */}
+            <div className="hidden lg:flex items-center gap-1.5 xl:gap-2.5 2xl:gap-3 min-w-0 shrink-0">
               {/* Help & Support Quick Button */}
               <button
                 onClick={() => setActiveModal("help")}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2 py-1.5 xl:px-2.5 xl:py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors cursor-pointer shrink-0"
                 title={t("layout.helpAndSupport", "Help & Support")}
               >
-                <HelpCircle className="w-4 h-4 text-indigo-400" />
-                <span>{t("layout.help", "Help")}</span>
+                <HelpCircle className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span className="hidden xl:inline">{t("layout.help", "Help")}</span>
               </button>
 
               {/* Language Switcher */}
-              <div className="flex items-center bg-slate-950/70 border border-slate-800 rounded-xl p-0.5">
+              <div className="flex items-center bg-slate-950/70 border border-slate-800 rounded-xl p-0.5 shrink-0">
                 {languages.map((lang) => (
                   <button
                     key={lang.code}
                     onClick={() => setLanguage(lang.code)}
-                    className={`px-2 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    className={`px-1.5 py-0.5 xl:px-2 xl:py-1 text-[11px] xl:text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                       currentLanguage === lang.code
                         ? "bg-indigo-600 text-white shadow-sm"
                         : "text-slate-400 hover:text-slate-200"
                     }`}
+                    title={lang.name}
                   >
-                    {lang.nativeName}
+                    <span className="xl:hidden">{lang.code.toUpperCase()}</span>
+                    <span className="hidden xl:inline">{lang.nativeName}</span>
                   </button>
                 ))}
               </div>
 
-              {/* User Details */}
-              <div className="text-right">
-                <div className="text-xs font-semibold text-slate-200 truncate max-w-[130px]">
+              {/* User Details - shrinks gracefully without pushing Logout offscreen */}
+              <div className="text-right min-w-0 max-w-[85px] xl:max-w-[120px] 2xl:max-w-[150px] shrink overflow-hidden">
+                <div className="text-xs font-semibold text-slate-200 truncate whitespace-nowrap overflow-hidden text-ellipsis">
                   {user?.name || "Member"}
                 </div>
-                <div className="text-[10px] text-slate-400 truncate max-w-[130px]">
+                <div className="text-[10px] text-slate-400 truncate whitespace-nowrap overflow-hidden text-ellipsis">
                   {user?.email}
                 </div>
               </div>
 
+              {/* Logout Button - Always visible and clickable */}
               <button
                 onClick={handleLogout}
                 title={t("nav.logout", "Logout")}
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                aria-label={t("nav.logout", "Logout")}
+                className="p-1.5 xl:p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0"
               >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Mobile Menu Button & Mobile Language Quick Toggle */}
-            <div className="md:hidden flex items-center space-x-2">
-              <div className="flex items-center bg-slate-950/70 border border-slate-800 rounded-lg p-0.5 text-xs">
+            {/* Mobile / Tablet Header Controls (screens < lg, e.g. 768px and 390px) */}
+            <div className="lg:hidden flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* Language Quick Toggle */}
+              <div className="flex items-center bg-slate-950/70 border border-slate-800 rounded-lg p-0.5 text-xs shrink-0">
                 {languages.map((lang) => (
                   <button
                     key={lang.code}
                     onClick={() => setLanguage(lang.code)}
-                    className={`px-1.5 py-0.5 text-[11px] font-medium rounded transition-all ${
+                    className={`px-1.5 py-0.5 text-[10px] sm:text-[11px] font-medium rounded transition-all cursor-pointer ${
                       currentLanguage === lang.code
                         ? "bg-indigo-600 text-white font-semibold"
                         : "text-slate-400"
@@ -157,9 +162,30 @@ export default function Layout() {
                 ))}
               </div>
 
+              {/* User Details on medium/tablet screens */}
+              <div className="hidden sm:block text-right min-w-0 max-w-[100px] md:max-w-[130px] shrink overflow-hidden">
+                <div className="text-xs font-semibold text-slate-200 truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                  {user?.name || "Member"}
+                </div>
+                <div className="text-[10px] text-slate-400 truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                  {user?.email}
+                </div>
+              </div>
+
+              {/* Logout Button directly on top bar */}
+              <button
+                onClick={handleLogout}
+                title={t("nav.logout", "Logout")}
+                aria-label={t("nav.logout", "Logout")}
+                className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+
+              {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer shrink-0"
                 aria-label="Toggle navigation menu"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -168,9 +194,9 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer */}
+        {/* Mobile / Tablet Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-slate-900 border-b border-slate-800 px-4 pt-2 pb-5 space-y-2">
+          <div className="lg:hidden bg-slate-900 border-b border-slate-800 px-4 pt-2 pb-5 space-y-2">
             <div className="grid grid-cols-1 gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -205,7 +231,7 @@ export default function Layout() {
                   setMobileMenuOpen(false);
                   setActiveModal("help");
                 }}
-                className="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 w-full text-left"
+                className="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 w-full text-left cursor-pointer"
               >
                 <HelpCircle className="w-4 h-4 mr-3 shrink-0 text-indigo-400" />
                 <span>{t("layout.helpAndSupport", "Help & Support")}</span>
