@@ -17,12 +17,15 @@ import {
   Clock,
   Layers,
   Phone,
-  Mail
+  Mail,
+  Languages,
+  Globe,
+  ChevronDown
 } from "lucide-react";
 
 export default function Profile() {
   const { user, updateUser, refreshUser } = useAuth();
-  const { t } = useLanguage();
+  const { currentLanguage, setLanguage, t, languages } = useLanguage();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -317,6 +320,66 @@ export default function Profile() {
             </div>
           </div>
 
+          {/* Language Preference Card (View Mode) */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                  <Languages className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <span>{t("profile.languagePreference", "Language Preference")}</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  {t("profile.languageDesc", "Choose your preferred display language for CIBIL insights and recommendations.")}
+                </p>
+              </div>
+
+              {/* Language Dropdown Selector */}
+              <div className="w-full sm:w-64">
+                <label htmlFor="profile-language-select" className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                  {t("profile.selectLanguage", "Select Language")}
+                </label>
+                <div className="relative">
+                  <Globe className="w-4 h-4 text-indigo-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    id="profile-language-select"
+                    value={currentLanguage}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none transition-all hover:border-slate-700"
+                  >
+                    {languages.map((lang) => (
+                      <option key={lang.code} value={lang.code} className="bg-slate-900 text-white py-1">
+                        {lang.nativeName} ({lang.label || lang.name || lang.code.toUpperCase()})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Option Buttons */}
+            <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-400 mr-1 font-medium">{t("profile.selectLanguage", "Select Language")}:</span>
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => setLanguage(lang.code)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    currentLanguage === lang.code
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 border border-indigo-500/50"
+                      : "bg-slate-950/80 text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <span>{lang.nativeName}</span>
+                  {currentLanguage === lang.code && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Financial Indicators Card (View Mode) */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-800">
@@ -511,6 +574,66 @@ export default function Profile() {
                   className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Language Preference Card (Edit Mode) */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                  <Languages className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <span>{t("profile.languagePreference", "Language Preference")}</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  {t("profile.languageDesc", "Choose your preferred display language for CIBIL insights and recommendations.")}
+                </p>
+              </div>
+
+              {/* Language Dropdown Selector */}
+              <div className="w-full sm:w-64">
+                <label htmlFor="edit-profile-language-select" className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                  {t("profile.selectLanguage", "Select Language")}
+                </label>
+                <div className="relative">
+                  <Globe className="w-4 h-4 text-indigo-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    id="edit-profile-language-select"
+                    value={currentLanguage}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none transition-all hover:border-slate-700"
+                  >
+                    {languages.map((lang) => (
+                      <option key={lang.code} value={lang.code} className="bg-slate-900 text-white py-1">
+                        {lang.nativeName} ({lang.label || lang.name || lang.code.toUpperCase()})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Option Buttons */}
+            <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-400 mr-1 font-medium">{t("profile.selectLanguage", "Select Language")}:</span>
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => setLanguage(lang.code)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    currentLanguage === lang.code
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 border border-indigo-500/50"
+                      : "bg-slate-950/80 text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <span>{lang.nativeName}</span>
+                  {currentLanguage === lang.code && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 

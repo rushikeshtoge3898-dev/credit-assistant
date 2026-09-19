@@ -21,7 +21,7 @@ import { useState } from "react";
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const { currentLanguage, setLanguage, t, languages } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null); // 'help' | 'privacy' | 'terms' | 'disclaimer' | null
@@ -44,7 +44,7 @@ export default function Layout() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col overflow-x-hidden">
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-40 w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
-        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-16 gap-2 lg:gap-3 xl:gap-4 min-w-0">
             {/* Logo */}
             <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0">
@@ -56,7 +56,7 @@ export default function Layout() {
                   <span className="text-sm sm:text-base xl:text-lg font-bold bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent whitespace-nowrap">
                     Credit Assistant
                   </span>
-                  <span className="hidden xl:inline-block text-[10px] xl:text-[11px] font-semibold px-1.5 xl:px-2 py-0.2 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+                  <span className="hidden 2xl:inline-block text-[10px] 2xl:text-[11px] font-semibold px-1.5 2xl:px-2 py-0.2 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
                     CIBIL India
                   </span>
                 </div>
@@ -64,7 +64,7 @@ export default function Layout() {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 2xl:gap-1.5 min-w-0 shrink">
+            <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 2xl:gap-1.5 min-w-0 shrink-0">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -72,7 +72,7 @@ export default function Layout() {
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `flex items-center px-1.5 py-1.5 lg:px-2 xl:px-2.5 2xl:px-3 xl:py-2 rounded-lg text-xs 2xl:text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
+                      `flex items-center px-1.5 py-1.5 xl:px-2 2xl:px-2.5 xl:py-2 rounded-lg text-[11px] xl:text-xs 2xl:text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
                         isActive
                           ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 shadow-sm"
                           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
@@ -91,43 +91,24 @@ export default function Layout() {
               })}
             </nav>
 
-            {/* Desktop Right Side: Help + Language Switcher + User Details + Logout */}
-            <div className="hidden lg:flex items-center gap-1.5 xl:gap-2.5 2xl:gap-3 min-w-0 shrink-0">
+            {/* Desktop Right Side: Help + User Details + Logout */}
+            <div className="hidden lg:flex items-center gap-2 xl:gap-3 min-w-0 shrink-0">
               {/* Help & Support Quick Button */}
               <button
                 onClick={() => setActiveModal("help")}
-                className="flex items-center gap-1 px-2 py-1.5 xl:px-2.5 xl:py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors cursor-pointer shrink-0"
+                className="flex items-center gap-1.5 px-2 py-1.5 2xl:px-2.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors cursor-pointer shrink-0"
                 title={t("layout.helpAndSupport", "Help & Support")}
               >
                 <HelpCircle className="w-4 h-4 text-indigo-400 shrink-0" />
-                <span className="hidden xl:inline">{t("layout.help", "Help")}</span>
+                <span className="hidden 2xl:inline">{t("layout.help", "Help")}</span>
               </button>
 
-              {/* Language Switcher */}
-              <div className="flex items-center bg-slate-950/70 border border-slate-800 rounded-xl p-0.5 shrink-0">
-                {languages.map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => setLanguage(lang.code)}
-                    className={`px-1.5 py-0.5 xl:px-2 xl:py-1 text-[11px] xl:text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                      currentLanguage === lang.code
-                        ? "bg-indigo-600 text-white shadow-sm"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                    title={lang.name}
-                  >
-                    <span className="xl:hidden">{lang.code.toUpperCase()}</span>
-                    <span className="hidden xl:inline">{lang.nativeName}</span>
-                  </button>
-                ))}
-              </div>
-
               {/* User Details - shrinks gracefully without pushing Logout offscreen */}
-              <div className="text-right min-w-0 max-w-[85px] xl:max-w-[120px] 2xl:max-w-[150px] shrink overflow-hidden">
+              <div className="text-right min-w-0 max-w-[110px] xl:max-w-[140px] 2xl:max-w-[180px] shrink overflow-hidden">
                 <div className="text-xs font-semibold text-slate-200 truncate whitespace-nowrap overflow-hidden text-ellipsis">
                   {user?.name || "Member"}
                 </div>
-                <div className="text-[10px] text-slate-400 truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                <div className="hidden 2xl:block text-[10px] text-slate-400 truncate whitespace-nowrap overflow-hidden text-ellipsis">
                   {user?.email}
                 </div>
               </div>
@@ -144,26 +125,9 @@ export default function Layout() {
             </div>
 
             {/* Mobile / Tablet Header Controls (screens < lg, e.g. 768px and 390px) */}
-            <div className="lg:hidden flex items-center gap-1.5 sm:gap-2 shrink-0">
-              {/* Language Quick Toggle */}
-              <div className="flex items-center bg-slate-950/70 border border-slate-800 rounded-lg p-0.5 text-xs shrink-0">
-                {languages.map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => setLanguage(lang.code)}
-                    className={`px-1.5 py-0.5 text-[10px] sm:text-[11px] font-medium rounded transition-all cursor-pointer ${
-                      currentLanguage === lang.code
-                        ? "bg-indigo-600 text-white font-semibold"
-                        : "text-slate-400"
-                    }`}
-                  >
-                    {lang.code.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-
+            <div className="lg:hidden flex items-center gap-2 shrink-0">
               {/* User Details on medium/tablet screens */}
-              <div className="hidden sm:block text-right min-w-0 max-w-[100px] md:max-w-[130px] shrink overflow-hidden">
+              <div className="hidden sm:block text-right min-w-0 max-w-[120px] shrink overflow-hidden">
                 <div className="text-xs font-semibold text-slate-200 truncate whitespace-nowrap overflow-hidden text-ellipsis">
                   {user?.name || "Member"}
                 </div>

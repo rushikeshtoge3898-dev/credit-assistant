@@ -432,7 +432,10 @@ export const translations = {
       "nameRequired": "Full Name cannot be empty.",
       "validEmailRequired": "Please enter a valid email address.",
       "validMobileRequired": "Please enter a valid 10-digit Indian mobile number.",
-      "editingMode": "Editing Mode"
+      "editingMode": "Editing Mode",
+      "languagePreference": "Language Preference",
+      "selectLanguage": "Select Language",
+      "languageDesc": "Choose your preferred display language for CIBIL insights and recommendations."
     }
   },
   "mr": {
@@ -865,7 +868,10 @@ export const translations = {
       "nameRequired": "पूर्ण नाव रिक्त असू शकत नाही.",
       "validEmailRequired": "कृपया वैध ईमेल पत्ता प्रविष्ट करा.",
       "validMobileRequired": "कृपया वैध १० अंकी भारतीय मोबाईल नंबर प्रविष्ट करा.",
-      "editingMode": "संपादन मोड"
+      "editingMode": "संपादन मोड",
+      "languagePreference": "भाषा प्राधान्य",
+      "selectLanguage": "भाषा निवडा",
+      "languageDesc": "CIBIL विश्लेषण आणि शिफारसींसाठी तुमची पसंतीची भाषा निवडा."
     }
   },
   "hi": {
@@ -1298,7 +1304,10 @@ export const translations = {
       "nameRequired": "पूरा नाम खाली नहीं हो सकता।",
       "validEmailRequired": "कृपया एक मान्य ईमेल पता दर्ज करें।",
       "validMobileRequired": "कृपया एक मान्य १० अंकों का भारतीय मोबाइल नंबर दर्ज करें।",
-      "editingMode": "संपादन मोड"
+      "editingMode": "संपादन मोड",
+      "languagePreference": "भाषा प्राथमिकता",
+      "selectLanguage": "भाषा चुनें",
+      "languageDesc": "सिबिल विश्लेषण और सिफारिशों के लिए अपनी पसंदीदा भाषा चुनें."
     }
   }
 };
