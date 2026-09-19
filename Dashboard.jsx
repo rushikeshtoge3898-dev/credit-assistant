@@ -41,8 +41,6 @@ export default function Dashboard() {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [seeding, setSeeding] = useState(false);
-  const [seedSuccess, setSeedSuccess] = useState(false);
   const [updatingRecId, setUpdatingRecId] = useState(null);
 
   const fetchDashboardData = async () => {
@@ -132,29 +130,6 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboardData();
   }, []);
-
-  const handleSeedData = async () => {
-    setSeeding(true);
-    setSeedSuccess(false);
-
-    try {
-      await creditAPI.seedSampleData();
-      setSeedSuccess(true);
-      await fetchDashboardData();
-      setTimeout(() => setSeedSuccess(false), 6000);
-    } catch (err) {
-      try {
-        await api.post("/credit/seed-sample-data");
-        setSeedSuccess(true);
-        await fetchDashboardData();
-        setTimeout(() => setSeedSuccess(false), 6000);
-      } catch (e) {
-        console.error("Failed to seed sample data:", e);
-      }
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const handleToggleRecommendation = async (rec) => {
     setUpdatingRecId(rec.id);
@@ -303,12 +278,6 @@ export default function Dashboard() {
                 <Sparkles className="w-3.5 h-3.5" />
                 {t("dashboard.cibilAssessment", "TransUnion CIBIL India Assessment")}
               </span>
-
-              {seedSuccess && (
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-fade-in">
-                  {t("dashboard.sampleDataLoaded", "Sample Indian CIBIL profile loaded!")}
-                </span>
-              )}
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -321,15 +290,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-            <button
-              onClick={handleSeedData}
-              disabled={seeding}
-              className="flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-medium text-slate-300 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition-all cursor-pointer disabled:opacity-60"
-            >
-              <Database className="w-4 h-4 mr-1.5 text-indigo-400" />
-              {seeding ? t("dashboard.loadingDemoData", "Loading...") : t("dashboard.loadDemoData", "Load Demo CIBIL Data")}
-            </button>
-
             <Link
               to="/ai-assistant"
               className="flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-600/30 transition-all"
@@ -353,7 +313,7 @@ export default function Dashboard() {
               {t("dashboard.noDataTitle", "No credit data added yet")}
             </h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              {t("dashboard.noDataDesc", "Start by logging your current credit score snapshot, adding your credit cards or active loans, or load sample data to explore the credit health capabilities.")}
+              {t("dashboard.noDataDesc", "Start by logging your current credit score snapshot and adding your credit cards or active loans to explore your credit health capabilities.")}
             </p>
           </div>
 
@@ -373,15 +333,6 @@ export default function Dashboard() {
               <TrendingUp className="w-4 h-4 text-emerald-400" />
               {t("dashboard.logCreditScore", "Log Credit Score")}
             </Link>
-
-            <button
-              onClick={handleSeedData}
-              disabled={seeding}
-              className="px-4 py-2.5 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Database className="w-4 h-4 text-indigo-400" />
-              {t("dashboard.loadDemoData", "Load Demo CIBIL Data")}
-            </button>
           </div>
         </div>
       )}
@@ -773,7 +724,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="text-center py-6 text-slate-500 text-xs">
-            {t("dashboard.noRecsAvailable", "No recommendations generated yet. Click 'Load Demo CIBIL Data' or run an AI Credit Diagnostic.")}
+            {t("dashboard.noRecsAvailable", "No recommendations available yet.")}
           </div>
         )}
       </div>

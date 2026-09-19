@@ -51,9 +51,15 @@ function Login() {
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Login failed:", err);
+      const isNetworkError =
+        err.message === "Network Error" ||
+        err.code === "ERR_NETWORK" ||
+        (!err.response && Boolean(err.request));
       const msg =
         err.response?.data?.detail ||
-        t("auth.invalidCredentials", "Invalid email or password. Please check your credentials.");
+        (isNetworkError
+          ? "Unable to reach the authentication server. Please verify your connection or try again in a moment."
+          : t("auth.invalidCredentials", "Invalid email or password. Please check your credentials."));
       setError(msg);
     } finally {
       setLoading(false);

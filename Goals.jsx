@@ -108,8 +108,8 @@ export default function Goals() {
   // Base score
   const hasScore = typeof profile?.credit_score === "number" && profile.credit_score >= 300;
   const baseScore = hasScore ? profile.credit_score : null;
-  const currentLimit = profile?.credit_limit || 100000;
-  const currentBalance = profile?.credit_card_balance || 30000;
+  const currentLimit = profile?.credit_limit || 0;
+  const currentBalance = profile?.credit_card_balance || 0;
 
   // Simulator calculations (CIBIL grounded)
   // 1. Paydown bonus: reduction in utilization
@@ -230,11 +230,12 @@ export default function Goals() {
             <input
               type="range"
               min="0"
-              max={currentBalance}
+              max={Math.max(1, currentBalance)}
               step="2000"
+              disabled={currentBalance === 0}
               value={paydownAmount}
               onChange={(e) => setPaydownAmount(Number(e.target.value))}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 disabled:opacity-50"
             />
             <div className="flex justify-between text-[11px] text-slate-500 mt-2">
               <span>₹0</span>
@@ -381,7 +382,7 @@ export default function Goals() {
           </div>
         ) : (
           <div className="py-8 text-center text-slate-400 space-y-3">
-            <p className="text-xs">{t("goals.noGoals", "No target goals created yet. Set a milestone (e.g. 780 for prime home loan approval).")}</p>
+            <p className="text-xs">{t("goals.noGoals", "No goals created yet.")}</p>
             <button
               onClick={() => setShowGoalModal(true)}
               className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 cursor-pointer"

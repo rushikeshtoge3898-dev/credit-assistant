@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api, { accountsAPI, paymentsAPI } from "../services/api";
+import BankSelector from "../components/BankSelector";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import {
@@ -24,14 +25,13 @@ export default function Accounts() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [seeding, setSeeding] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
 
   // Form states for Add/Edit Account
   const [accountName, setAccountName] = useState("");
-  const [bankName, setBankName] = useState("HDFC Bank");
+  const [bankName, setBankName] = useState("State Bank of India");
   const [accountType, setAccountType] = useState("credit_card");
   const [accountNumber, setAccountNumber] = useState("XXXX-1234");
   const [balance, setBalance] = useState("");
@@ -79,30 +79,13 @@ export default function Accounts() {
     }
   };
 
-  const handleSeedFromAccounts = async () => {
-    setSeeding(true);
-    try {
-      await api.post("/api/credit/seed-sample-data");
-      await fetchData();
-    } catch (e) {
-      try {
-        await api.post("/credit/seed-sample-data");
-        await fetchData();
-      } catch (err) {
-        console.error("Seed error:", err);
-      }
-    } finally {
-      setSeeding(false);
-    }
-  };
-
   useEffect(() => {
     fetchData();
   }, []);
 
   const resetAccountForm = () => {
     setAccountName("");
-    setBankName("HDFC Bank");
+    setBankName("State Bank of India");
     setAccountType("credit_card");
     setAccountNumber("XXXX-1234");
     setBalance("");
@@ -117,7 +100,7 @@ export default function Accounts() {
   const handleOpenEdit = (acc) => {
     setEditingAccount(acc);
     setAccountName(acc.account_name || "");
-    setBankName(acc.bank_name || "HDFC Bank");
+    setBankName(acc.bank_name || "State Bank of India");
     setAccountType(acc.account_type || "credit_card");
     setAccountNumber(acc.account_number_masked || "XXXX-1234");
     setBalance(acc.current_balance !== undefined ? String(acc.current_balance) : "");
@@ -426,7 +409,7 @@ export default function Accounts() {
           </div>
         ) : (
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 space-y-4">
-            <p className="text-sm font-medium text-slate-300">{t("accounts.noAccounts", "No credit cards or loan accounts added yet.")}</p>
+            <p className="text-sm font-medium text-slate-300">{t("accounts.noAccounts", "No credit accounts added yet.")}</p>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               {t("accounts.noAccountsDesc", "Add your existing credit cards or loans to calculate utilization, DTI, and credit age accurately.")}
             </p>
@@ -439,13 +422,6 @@ export default function Accounts() {
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> {t("accounts.addAccount", "Add Credit Account")}
-              </button>
-              <button
-                onClick={handleSeedFromAccounts}
-                disabled={seeding}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
-              >
-                <Clock className="w-3.5 h-3.5 text-indigo-400" /> {seeding ? t("common.loading", "Loading...") : t("dashboard.loadDemoData", "Load Demo CIBIL Data")}
               </button>
             </div>
           </div>
@@ -524,21 +500,14 @@ export default function Accounts() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-300 mb-1">{t("accounts.bankName", "Bank / Lender")}</label>
-                  <select
+                  <BankSelector
                     value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm"
-                  >
-                    <option value="HDFC Bank">HDFC Bank</option>
-                    <option value="State Bank of India">SBI</option>
-                    <option value="ICICI Bank">ICICI Bank</option>
-                    <option value="Axis Bank">Axis Bank</option>
-                    <option value="Kotak Mahindra">Kotak Mahindra</option>
-                    <option value="Other Bank">Other Bank</option>
-                  </select>
+                    onChange={setBankName}
+                    label={t("accounts.bankName", "Bank / Lender")}
+                    required
+                  />
                 </div>
 
                 <div>

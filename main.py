@@ -24,7 +24,7 @@ from models import (
     Recommendation,
 )
 
-from schemas import UserCreate, UserLogin, UserResponse, FirebaseLoginRequest
+from schemas import UserCreate, UserLogin, UserResponse, FirebaseLoginRequest, UserUpdate
 from credit_schemas import (
     CreditProfileCreate,
     CreditProfileResponse,
@@ -129,8 +129,10 @@ else:
         "http://127.0.0.1:3000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        "https://credit-assistant-e9f07.web.app",
+        "https://credit-assistant-e9f07.firebaseapp.com",
     ]
-    if frontend_url:
+    if frontend_url and frontend_url not in origins:
         origins.append(frontend_url)
 if "*" in origins:
     app.add_middleware(
@@ -144,6 +146,7 @@ else:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins if origins else ["*"],
+        allow_origin_regex=r"https://credit-assistant-.*\.web\.app|https://credit-assistant-.*\.firebaseapp\.com",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -310,10 +313,54 @@ def firebase_login(
 
 
 @api_router.get("/auth/me", response_model=UserResponse)
+@app.get("/auth/me", response_model=UserResponse)
+@api_router.get("/users/me", response_model=UserResponse)
 @app.get("/users/me", response_model=UserResponse)
 def get_my_profile(
     current_user: User = Depends(get_current_user)
 ):
+    return current_user
+
+
+@api_router.put("/auth/profile", response_model=UserResponse)
+@app.put("/auth/profile", response_model=UserResponse)
+@api_router.put("/auth/me", response_model=UserResponse)
+@app.put("/auth/me", response_model=UserResponse)
+@api_router.put("/users/me", response_model=UserResponse)
+@app.put("/users/me", response_model=UserResponse)
+def update_user_profile(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update registered user's basic profile (Name, Email, Phone Number).
+    Protected by JWT. Rejects duplicate emails.
+    """
+    if user_update.email and user_update.email.lower() != current_user.email.lower():
+        existing_user = db.query(User).filter(
+            User.email == user_update.email,
+            User.id != current_user.id
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=400,
+                detail="Email already registered"
+            )
+        current_user.email = user_update.email
+
+    if user_update.name is not None:
+        current_user.name = user_update.name
+
+    new_phone = user_update.phone_number or user_update.mobile
+    if new_phone is not None:
+        current_user.phone_number = new_phone
+    elif user_update.phone_number == "" or user_update.mobile == "":
+        current_user.phone_number = None
+
+    db.commit()
+    db.refresh(current_user)
+
     return current_user
 
 
@@ -759,82 +806,6 @@ def get_recommendations(
         Recommendation.user_id == current_user.id
     ).order_by(Recommendation.created_at.desc()).all()
 
-    # If user has no recommendations saved in DB yet, auto-generate initial prioritized ones
-    if not user_recs:
-        profile = db.query(CreditProfile).filter(
-            CreditProfile.user_id == current_user.id
-        ).first()
-
-        utilization = 0.0
-        if profile and profile.credit_limit > 0:
-            utilization = (profile.credit_card_balance / profile.credit_limit) * 100
-
-        initial_recommendations = []
-
-        if utilization > 30:
-            initial_recommendations.append(
-                Recommendation(
-                    user_id=current_user.id,
-                    title="Lower Revolving Card Utilization Below 30%",
-                    description=f"Your current card utilization is {utilization:.1f}%. Pay down card balance before statement closing to instantly boost CIBIL points.",
-                    priority="High",
-                    category="Utilization",
-                    is_completed=False
-                )
-            )
-        else:
-            initial_recommendations.append(
-                Recommendation(
-                    user_id=current_user.id,
-                    title="Maintain Optimal Utilization Under 30%",
-                    description=f"Your utilization is healthy at {utilization:.1f}%. Keep card balances well below 30% of your total limit.",
-                    priority="Low",
-                    category="Utilization",
-                    is_completed=False
-                )
-            )
-
-        if profile and profile.missed_payments > 0:
-            initial_recommendations.append(
-                Recommendation(
-                    user_id=current_user.id,
-                    title="Clear Overdue Balances to Stop Negative Reporting",
-                    description=f"You have {profile.missed_payments} reported overdue payment(s). Settle overdue dues immediately to avoid 30+ DPD mark.",
-                    priority="High",
-                    category="Payment History",
-                    is_completed=False
-                )
-            )
-        else:
-            initial_recommendations.append(
-                Recommendation(
-                    user_id=current_user.id,
-                    title="Enable Auto-Debit for 100% On-Time Record",
-                    description="Set bank auto-debit on total bill amount due so you never miss an EMI or credit card deadline (35% factor).",
-                    priority="Medium",
-                    category="Payment History",
-                    is_completed=False
-                )
-            )
-
-        initial_recommendations.append(
-            Recommendation(
-                user_id=current_user.id,
-                title="Preserve Oldest Credit Tradelines",
-                description="Avoid closing your oldest active credit card to maintain established credit age and low utilization capacity.",
-                priority="Medium",
-                category="Credit Mix",
-                is_completed=False
-            )
-        )
-
-        db.add_all(initial_recommendations)
-        db.commit()
-
-        user_recs = db.query(Recommendation).filter(
-            Recommendation.user_id == current_user.id
-        ).order_by(Recommendation.created_at.desc()).all()
-
     return user_recs
 
 
@@ -965,121 +936,6 @@ def ai_recommendations(
     return result
 
 
-# ============================================================================
-# 8. DEMO DATA SEEDING ENDPOINT
-# ============================================================================
-
-@api_router.post("/credit/seed-sample-data")
-@app.post("/credit/seed-sample-data")
-def seed_sample_cibil_data(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    now = datetime.utcnow()
-
-    # Ensure profile exists
-    profile = db.query(CreditProfile).filter(
-        CreditProfile.user_id == current_user.id
-    ).first()
-
-    if not profile:
-        profile = CreditProfile(
-            user_id=current_user.id,
-            credit_score=720,
-            monthly_income=65000.0,
-            total_debt=180000.0,
-            credit_limit=120000.0,
-            credit_card_balance=32000.0,
-            active_loans=2,
-            missed_payments=0,
-            financial_goal="Reach 780+ CIBIL score for Home Loan eligibility"
-        )
-        db.add(profile)
-        db.commit()
-        db.refresh(profile)
-
-    # Add sample accounts if none
-    existing_accs = db.query(CreditAccount).filter(
-        CreditAccount.user_id == current_user.id
-    ).count()
-
-    if existing_accs == 0:
-        sample_accounts = [
-            CreditAccount(
-                user_id=current_user.id,
-                account_name="HDFC Millennia Credit Card",
-                bank_name="HDFC Bank",
-                account_type="credit_card",
-                account_number_masked="XXXX-4819",
-                current_balance=22000.0,
-                credit_limit=80000.0,
-                monthly_emi=0.0,
-                payment_status="Current",
-                opened_date="Aug 2023",
-                account_age_months=36
-            ),
-            CreditAccount(
-                user_id=current_user.id,
-                account_name="ICICI Amazon Pay Card",
-                bank_name="ICICI Bank",
-                account_type="credit_card",
-                account_number_masked="XXXX-9281",
-                current_balance=10000.0,
-                credit_limit=40000.0,
-                monthly_emi=0.0,
-                payment_status="Current",
-                opened_date="Jan 2024",
-                account_age_months=32
-            ),
-            CreditAccount(
-                user_id=current_user.id,
-                account_name="SBI Express Personal Loan",
-                bank_name="State Bank of India",
-                account_type="personal_loan",
-                account_number_masked="XXXX-7310",
-                current_balance=148000.0,
-                credit_limit=200000.0,
-                monthly_emi=6450.0,
-                payment_status="Current",
-                opened_date="Jul 2025",
-                account_age_months=14
-            )
-        ]
-        db.add_all(sample_accounts)
-        db.commit()
-
-    # Add sample score history if none exist (idempotent seeding)
-    existing_history = db.query(CreditScoreHistory).filter(
-        CreditScoreHistory.user_id == current_user.id
-    ).count()
-
-    if existing_history == 0:
-        sample_history = [
-            CreditScoreHistory(user_id=current_user.id, credit_score=685, recorded_at=now - timedelta(days=90)),
-            CreditScoreHistory(user_id=current_user.id, credit_score=705, recorded_at=now - timedelta(days=60)),
-            CreditScoreHistory(user_id=current_user.id, credit_score=715, recorded_at=now - timedelta(days=30)),
-            CreditScoreHistory(user_id=current_user.id, credit_score=720, recorded_at=now),
-        ]
-        db.add_all(sample_history)
-        db.commit()
-
-    # Add sample payment records if none
-    existing_payments = db.query(PaymentRecord).filter(
-        PaymentRecord.user_id == current_user.id
-    ).count()
-
-    if existing_payments == 0:
-        sample_payments = [
-            PaymentRecord(user_id=current_user.id, month_year="May 2026", amount_paid=14200.0, status="On-Time"),
-            PaymentRecord(user_id=current_user.id, month_year="Jun 2026", amount_paid=15800.0, status="On-Time"),
-            PaymentRecord(user_id=current_user.id, month_year="Jul 2026", amount_paid=13500.0, status="On-Time"),
-            PaymentRecord(user_id=current_user.id, month_year="Aug 2026", amount_paid=16100.0, status="On-Time"),
-        ]
-        db.add_all(sample_payments)
-        db.commit()
-
-    return {"message": "Sample CIBIL accounts, history, and payment records successfully seeded"}
-
-
 # Mount the API router onto the main application
 app.include_router(api_router)
+

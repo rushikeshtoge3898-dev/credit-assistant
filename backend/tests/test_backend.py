@@ -426,20 +426,33 @@ def test_credit_goals_crud():
 # 9. RECOMMENDATIONS TESTS
 # ============================================================================
 
-def test_recommendations_auto_seed_and_toggle():
-    """Verify auto-generation of initial recommendations and toggling completion."""
+def test_recommendations_crud_and_toggle():
+    """Verify clean empty recommendations for new user, creation via POST, and toggling completion."""
     token = get_auth_token("recs_test@example.com")
     headers = {"Authorization": f"Bearer {token}"}
 
-    # First fetch should auto-generate prioritized initial recommendations
+    # First fetch for clean user should return empty list (no auto-seeded demo records)
     recs_res = client.get("/api/recommendations", headers=headers)
     assert recs_res.status_code == 200
     recs = recs_res.json()
-    assert len(recs) >= 1
+    assert len(recs) == 0
 
-    first_rec = recs[0]
+    # Create an actual recommendation
+    create_res = client.post(
+        "/api/recommendations",
+        headers=headers,
+        json={
+            "title": "Keep Card Utilization Below 30%",
+            "description": "Pay credit card balances before statement generation to optimize CIBIL score.",
+            "priority": "High",
+            "category": "Utilization"
+        }
+    )
+    assert create_res.status_code == 200
+    first_rec = create_res.json()
     rec_id = first_rec["id"]
     initial_status = first_rec["is_completed"]
+    assert initial_status is False
 
     # Toggle recommendation completion
     toggle_res = client.put(
@@ -506,39 +519,33 @@ def test_ai_advisor_endpoints():
 
 
 # ============================================================================
-# 11. DEMO DATA SEEDING IDEMPOTENCY TEST
+# 11. CLEAN NEW USER DATA ISOLATION (ZERO DEMO SEEDING)
 # ============================================================================
 
-def test_demo_seeding_idempotence():
-    """Verify demo seed populates sample data and repeated calls do NOT create duplicate records."""
-    token = get_auth_token("seed_idempotent_test@example.com")
+def test_new_user_clean_empty_state():
+    """Verify newly registered user starts with 100% clean profile: zero accounts, zero score history, zero payments, zero recommendations."""
+    token = get_auth_token("clean_empty_user@example.com")
     headers = {"Authorization": f"Bearer {token}"}
 
-    # First seed call
-    seed1 = client.post("/api/credit/seed-sample-data", headers=headers)
-    assert seed1.status_code == 200
+    # Verify zero accounts
+    accs_res = client.get("/api/accounts", headers=headers)
+    assert accs_res.status_code == 200
+    assert len(accs_res.json()) == 0
 
-    # Verify data populated
-    accs_count1 = len(client.get("/api/accounts", headers=headers).json())
-    hist_count1 = len(client.get("/api/credit/score-history", headers=headers).json())
-    pays_count1 = len(client.get("/api/payments", headers=headers).json())
+    # Verify zero score history
+    hist_res = client.get("/api/credit/score-history", headers=headers)
+    assert hist_res.status_code == 200
+    assert len(hist_res.json()) == 0
 
-    assert accs_count1 == 3
-    assert hist_count1 == 4
-    assert pays_count1 == 4
+    # Verify zero payment records
+    pays_res = client.get("/api/payments", headers=headers)
+    assert pays_res.status_code == 200
+    assert len(pays_res.json()) == 0
 
-    # Second seed call -> must be idempotent
-    seed2 = client.post("/api/credit/seed-sample-data", headers=headers)
-    assert seed2.status_code == 200
-
-    # Verify counts did NOT duplicate
-    accs_count2 = len(client.get("/api/accounts", headers=headers).json())
-    hist_count2 = len(client.get("/api/credit/score-history", headers=headers).json())
-    pays_count2 = len(client.get("/api/payments", headers=headers).json())
-
-    assert accs_count2 == accs_count1, f"Accounts duplicated: expected {accs_count1}, got {accs_count2}"
-    assert hist_count2 == hist_count1, f"Score history duplicated: expected {hist_count1}, got {hist_count2}"
-    assert pays_count2 == pays_count1, f"Payments duplicated: expected {pays_count1}, got {pays_count2}"
+    # Verify zero recommendations
+    recs_res = client.get("/api/recommendations", headers=headers)
+    assert recs_res.status_code == 200
+    assert len(recs_res.json()) == 0
 
 
 # ============================================================================

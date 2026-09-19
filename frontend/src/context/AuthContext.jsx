@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
         const params = new URLSearchParams();
         params.append("username", email);
         params.append("password", password);
-        const res = await api.post("/auth/login", params, {
+        const res = await api.post("/api/auth/login", params, {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
         });
         data = res.data;
@@ -86,11 +86,23 @@ export function AuthProvider({ children }) {
       }
     }
 
-    const { access_token, user: userData } = data;
-    setToken(access_token);
-    setUser(userData);
-    localStorage.setItem("token", access_token);
-    localStorage.setItem("user", JSON.stringify(userData));
+    const { access_token, token_type, user: userData } = data;
+    if (access_token) {
+      setToken(access_token);
+      localStorage.setItem("token", access_token);
+    }
+    let resolvedUser = userData;
+    if (!resolvedUser && access_token) {
+      try {
+        resolvedUser = await authAPI.getMe();
+      } catch (e) {
+        console.warn("Could not fetch user details post-login:", e);
+      }
+    }
+    if (resolvedUser) {
+      setUser(resolvedUser);
+      localStorage.setItem("user", JSON.stringify(resolvedUser));
+    }
     return data;
   };
 

@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const rawBaseURL = import.meta.env.VITE_API_BASE_URL || "https://credit-assistant-backend.onrender.com";
+const API_BASE_URL = rawBaseURL.replace(/\/+$/, "");
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -46,7 +47,7 @@ export const authAPI = {
     const params = new URLSearchParams();
     params.append("username", email);
     params.append("password", password);
-    const response = await api.post("/api/auth/login", params, {
+    const response = await api.post("/auth/login", params, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
     return response.data;
@@ -90,10 +91,6 @@ export const creditAPI = {
   },
   addScoreHistory: async (data) => {
     const response = await api.post("/api/credit/score-history", data);
-    return response.data;
-  },
-  seedSampleData: async () => {
-    const response = await api.post("/api/credit/seed-sample-data");
     return response.data;
   },
 };

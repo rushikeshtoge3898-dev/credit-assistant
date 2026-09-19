@@ -317,7 +317,7 @@ export default function ScoreHistory() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs space-y-2">
               <History className="w-8 h-8 text-slate-600" />
-              <p>{t("scoreHistory.noHistory", "No score snapshots logged yet.")}</p>
+              <p>{t("scoreHistory.noHistory", "No score history available.")}</p>
               <p className="text-[11px] text-slate-600">{t("scoreHistory.noHistoryDesc", "Enter your latest score below to begin building your trend curve.")}</p>
             </div>
           )}
@@ -442,7 +442,7 @@ export default function ScoreHistory() {
             </div>
           ) : (
             <div className="py-8 text-center text-slate-500 text-xs">
-              {t("scoreHistory.noHistory", "No historical entries to show.")}
+              {t("scoreHistory.noHistory", "No score history available.")}
             </div>
           )}
         </div>
