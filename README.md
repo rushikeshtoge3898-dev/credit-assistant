@@ -154,3 +154,8 @@ Credit Assistant is an educational project providing credit-information organiza
 ---
 
 ⭐ If you find this project useful, consider starring the repository.
+
+
+## Project Documentation
+
+📄 [View Credit Assistant Project Report](./CREDIT_ASSISTANT_Project_Report.docx)
